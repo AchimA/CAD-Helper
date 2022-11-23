@@ -45,19 +45,27 @@ class DeleteAndReparentChildren(bpy.types.Operator):
 
 class DeleteSelectedEmpiesWithoutChildren(bpy.types.Operator):
     '''
-    Deletes all empties that do not have any chlidren parented to it. Operator works on an selection.
+    Under selected root objects; recursivley deletes all empties that do not have any chlidren parented to it.
     '''
     bl_idname = 'object.delete_selected_empties_without_children'
     bl_label = 'Delete selected Empies without Children'
     bl_info = ''
     
-    self.del_list = []
+    init_selection = bpy.context.selected_objects
+    
+    # list of objects marked for deletion:
+    del_list = []
     
     def execute(self, context):
         self.report({'INFO'}, 'Printing report to Info window.')
             
         return {'FINISHED'}
     
+    def select_leefs(self):
+        # deselect everyting
+        bpy.ops.object.select_all(action='DESELECT')
+        #select initial objects
+        init_selection.select_set = True
     
 
 
