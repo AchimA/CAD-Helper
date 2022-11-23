@@ -25,7 +25,7 @@ def delete_and_reconnect(object):
             
 
 
-class DeleteAndReparentChildren_Operator(bpy.types.Operator):
+class OBJECT_MT_DeleteAndReparentChildren(bpy.types.Operator):
     '''
     Reconnects all the children of an object to it's parent (if available) before deleting the object.
     '''
@@ -40,26 +40,44 @@ class DeleteAndReparentChildren_Operator(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def menu_func(self, context):
+    '''
+    Add menu item
+    '''
+    self.layout.operator(OBJECT_MT_DeleteAndReparentChildren.bl_idname)
 
-CLASSES = [
-    ]
+
+#####################################################################################
+# Add-On Handling
+#####################################################################################
+
+__classes__ = (
+    OBJECT_MT_DeleteAndReparentChildren,
+)
     
 
 def register():
-    print('registered')
-    for klass in CLASSES:
-        bpy.utils.register_class(klass)
+    # register classes
+    for c in __classes__:
+        bpy.utils.register_class(c)
 
-    bpy.types.VIEW3D_MT_object.append(DeleteAndReparentChildren_Operator.bl_idname)
-        
+    # add menu items
+    bpy.types.VIEW3D_MT_object.append(menu_func)
+    
+    print('registered')
 
 
 
 def unregister():
+    # unregister classes
+    for c  in __classes__:
+        bpy.utils.unregister_class(c)
+        
+    #remove menu items
+    bpy.types.VIEW3D_MT_object.remove(menu_func)
+    
+    
     print('unregistered')
-    for klass in CLASSES:
-        bpy.utils.unregister_class(klass)
-    bpy.types.VIEW3D_MT_object.remove(DeleteAndReparentChildren_Operator.bl_idname)
         
 if __name__ == '__main__':
     register()
