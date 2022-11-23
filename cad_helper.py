@@ -40,9 +40,23 @@ class DeleteAndReparentChildren(bpy.types.Operator):
                 child.parent = parent
                 child.matrix_world = location
                 
-        bpy.data.objects.remove(object)
-        
-        #object.delete()
+        bpy.data.objects.remove(object)            
+
+
+class DeleteSelectedEmpiesWithoutChildren(bpy.types.Operator):
+    '''
+    Deletes all empties that do not have any chlidren parented to it. Operator works on an selection.
+    '''
+    bl_idname = 'object.delete_selected_empties_without_children'
+    bl_label = 'Delete selected Empies without Children'
+    bl_info = ''
+    
+    self.del_list = []
+    
+    def execute(self, context):
+        self.report({'INFO'}, 'Printing report to Info window.')
+            
+        return {'FINISHED'}
     
     
 
@@ -54,12 +68,14 @@ def menu_func(self, context):
     self.layout.operator(DeleteAndReparentChildren.bl_idname)
 
 
+
 #####################################################################################
 # Add-On Handling
 #####################################################################################
 
 __classes__ = (
     DeleteAndReparentChildren,
+    DeleteSelectedEmpiesWithoutChildren
 )
     
 
