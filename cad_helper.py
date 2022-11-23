@@ -25,15 +25,15 @@ def delete_and_reconnect(object):
             
 
 
-class OBJECT_MT_DeleteAndReparentChildren(bpy.types.Operator):
+class DeleteAndReparentChildren(bpy.types.Operator):
     '''
     Reconnects all the children of an object to it's parent (if available) before deleting the object.
     '''
-    bl_idname = 'object.DeleteAndReparentChildren'
+    bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and reparent children'
     
     
-    def execute(self):
+    def execute(self, context):
         for object in bpy.context.selected_objects:
             delete_and_reconnect(object)
             
@@ -44,7 +44,7 @@ def menu_func(self, context):
     '''
     Add menu item
     '''
-    self.layout.operator(OBJECT_MT_DeleteAndReparentChildren.bl_idname)
+    self.layout.operator(DeleteAndReparentChildren.bl_idname)
 
 
 #####################################################################################
@@ -52,7 +52,7 @@ def menu_func(self, context):
 #####################################################################################
 
 __classes__ = (
-    OBJECT_MT_DeleteAndReparentChildren,
+    DeleteAndReparentChildren,
 )
     
 
