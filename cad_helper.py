@@ -4,24 +4,13 @@ bl_info = {
     'blender': (3, 1, 0),
     'category': 'Object',
     # optional
-    'version': (0, 0, 1),
+    'version': (0, 0, 2),
     'author': 'Achim Ammon',
     'description': 'Adds additional object selection and deletion functionality.',
 }
 
 import bpy
 
-def delete_and_reconnect(object):
-    
-    parent = object.parent
-    
-    if parent is not None:
-        # executes only if object has a parent
-        children = object.children
-        for child in children:
-            child.parent = parent
-    
-    object.delete()
             
 
 
@@ -35,9 +24,27 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     
     def execute(self, context):
         for object in bpy.context.selected_objects:
-            delete_and_reconnect(object)
+            self.delete_and_reconnect(object)
             
         return {'FINISHED'}
+    
+    def delete_and_reconnect(self, object):
+    
+        parent = object.parent
+        
+        if parent is not None:
+            # executes only if object has a parent
+            children = object.children
+            for child in children:
+                location = child.matrix_world
+                child.parent = parent
+                child.matrix_world = location
+                
+        bpy.data.objects.remove(object)
+        
+        #object.delete()
+    
+    
 
 
 def menu_func(self, context):
@@ -64,7 +71,7 @@ def register():
     # add menu items
     bpy.types.VIEW3D_MT_object.append(menu_func)
     
-    print('registered')
+    print('registered ' + bl_info['name'] + ' Addon')
 
 
 
@@ -77,7 +84,7 @@ def unregister():
     bpy.types.VIEW3D_MT_object.remove(menu_func)
     
     
-    print('unregistered')
+    print('unregistered ' + bl_info['name'] + ' Addon')
         
 if __name__ == '__main__':
     register()
