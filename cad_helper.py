@@ -1,7 +1,7 @@
 bl_info = {
     # required
-    'name': 'CAD Selector',
-    'blender': (2, 93, 0),
+    'name': 'CAD Helper',
+    'blender': (3, 1, 0),
     'category': 'Object',
     # optional
     'version': (0, 0, 1),
@@ -50,7 +50,7 @@ def register():
     for klass in CLASSES:
         bpy.utils.register_class(klass)
 
-    bpy.types.VIEW3D_MT_object.append(DeleteAndReparentChildren_Operator)
+    bpy.types.VIEW3D_MT_object.append(DeleteAndReparentChildren_Operator.bl_idname)
         
 
 
@@ -59,7 +59,7 @@ def unregister():
     print('unregistered')
     for klass in CLASSES:
         bpy.utils.unregister_class(klass)
-    bpy.types.VIEW3D_MT_object.remove(meDeleteAndReparentChildren_Operatornu_draw)
+    bpy.types.VIEW3D_MT_object.remove(DeleteAndReparentChildren_Operator.bl_idname)
         
 if __name__ == '__main__':
     register()
