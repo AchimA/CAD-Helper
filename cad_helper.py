@@ -10,8 +10,7 @@ bl_info = {
 }
 
 import bpy
-
-            
+           
 
 
 class DeleteAndReparentChildren(bpy.types.Operator):
@@ -20,7 +19,11 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     '''
     bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and reparent children'
+    bl_options = {"REGISTER", "UNDO"}
     
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
     
     def execute(self, context):
         for object in bpy.context.selected_objects:
@@ -43,30 +46,59 @@ class DeleteAndReparentChildren(bpy.types.Operator):
         bpy.data.objects.remove(object)            
 
 
-class DeleteSelectedEmpiesWithoutChildren(bpy.types.Operator):
+class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     '''
     Under selected root objects; recursivley deletes all empties that do not have any chlidren parented to it.
     '''
     bl_idname = 'object.delete_selected_empties_without_children'
     bl_label = 'Delete selected Empies without Children'
+    bl_options = {"REGISTER", "UNDO"}
     bl_info = ''
     
-    init_selection = bpy.context.selected_objects
     
     # list of objects marked for deletion:
     del_list = []
     
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+        
     def execute(self, context):
-        self.report({'INFO'}, 'Printing report to Info window.')
+        
+        init_selection = bpy.context.selected_objects
+        
+        # exit function if no parents / roots have been selected
+        if len(init_selection) == 0:
+            self.report({'INFO'}, 'No objects were selected. Nothing done...')
+            return {'CANCELLED'}
+        
+        # select all the children
+        n = len(bpy.context.selected_objects)
+        dn = 1
+        while dn > 0:
+            bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
+            dn = len(bpy.context.selected_objects) - n
+            n = len(bpy.context.selected_objects)
+        sel = bpy.context.selected_objects
+        
+        # keep only type=empty
+        sel = [n for n in sel if n.type == 'EMPTY']
+        # keep only leafs (objects without children)
+        sel = [n for n in sel if len(n.children)==0]
+        
+        # iterate through list of leafes
+        while sel:
+            print(sel)
+            # extract first object of the list
+            obj = sel.pop(0)
+            # check if obj has parent of type empy, if True then add that parent to sel list
+            if obj.parent.type == 'EMPTY':
+                sel.append(obj.parent)
+            # delete obj
+            bpy.data.objects.remove(obj)
+            #continue as long as some elements are in the list
             
         return {'FINISHED'}
-    
-    def select_leefs(self):
-        # deselect everyting
-        bpy.ops.object.select_all(action='DESELECT')
-        #select initial objects
-        init_selection.select_set = True
-    
 
 
 def menu_func(self, context):
@@ -83,7 +115,7 @@ def menu_func(self, context):
 
 __classes__ = (
     DeleteAndReparentChildren,
-    DeleteSelectedEmpiesWithoutChildren
+    DeleteEmpiesWithoutChildren
 )
     
 
