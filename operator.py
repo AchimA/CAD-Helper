@@ -48,10 +48,7 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     bl_label = 'Delete child Empies with no children'
     bl_options = {"REGISTER", "UNDO"}
     bl_info = ''
-    
-    # list of objects marked for deletion:
-    del_list = []
-    
+        
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
@@ -96,12 +93,35 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
 
         return {'FINISHED'}
 
+        
+class FilterSelectionBySize(bpy.types.Operator):
+    '''
+    Under selected root objects; recursivley deletes all empties that do not have any chlidren parented to it.
+    '''
+    bl_idname = 'object.filter_selection_by_size'
+    bl_label = 'Filter Selection by Bounding Box Size'
+    bl_options = {"REGISTER", "UNDO"}
+    bl_info = ''
+        
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+    
+    def execute(self, context):
+        # exit function if no objects have been selected
+        if len(bpy.context.selected_objects) == 0:
+            self.report({'INFO'}, 'No objects were selected. Nothing done...')
+            return {'CANCELLED'}
+        
+        return {'FINISHED'}
+
 #####################################################################################
 # Add-On Handling
 #####################################################################################
 __classes__ = (
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
+    FilterSelectionBySize,
 )
 
 def register():
@@ -109,11 +129,11 @@ def register():
     for c in __classes__:
         bpy.utils.register_class(c)
     
-    print('registered ' + bl_info['name'] + ' Addon')
+    print('registered ')
 
 def unregister():
     # unregister classes
     for c  in __classes__:
         bpy.utils.unregister_class(c)
     
-    print('unregistered ' + bl_info['name'] + ' Addon')
+    print('unregistered ')
