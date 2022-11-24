@@ -7,10 +7,31 @@ bl_info = {
     'version': (0, 0, 2),
     'author': 'Achim Ammon',
     'description': 'Adds additional object selection and deletion functionality.',
+    "location": "View3D > UI > Unity Batch FBX Export",
 }
 
 import bpy
            
+# side panel:
+class TESTADDON_PT_TestPanel(bpy.types.Panel):
+    bl_idname = "TESTADDON_PT_TestPanel"
+    bl_label = "Test Addon"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Test Addon"
+    bl_context = "objectmode"
+
+    def draw(self, context):
+
+        layout = self.layout
+
+        row = layout.row()
+        row.label(text="How cool is this!")
+
+        row = layout.row()
+        row.operator('object.delete_and_reparent_children', icon='MESH_CUBE', text="delete_and_reparent_children")
+        row = layout.row()
+        row.operator('object.delete_selected_empties_without_children', icon='MESH_CUBE', text="delete_selected_empties_without_children")
 
 
 class DeleteAndReparentChildren(bpy.types.Operator):
@@ -26,6 +47,11 @@ class DeleteAndReparentChildren(bpy.types.Operator):
         return context.active_object is not None
     
     def execute(self, context):
+        # exit function if no parents / roots have been selected
+        if len(bpy.context.selected_objects) == 0:
+            self.report({'INFO'}, 'No objects were selected. Nothing done...')
+            return {'CANCELLED'}
+
         for object in bpy.context.selected_objects:
             self.delete_and_reconnect(object)
             
@@ -62,9 +88,9 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
-        
+
+                
     def execute(self, context):
-        
         init_selection = bpy.context.selected_objects
         
         # exit function if no parents / roots have been selected
@@ -114,6 +140,7 @@ def menu_func(self, context):
 #####################################################################################
 
 __classes__ = (
+    TESTADDON_PT_TestPanel,
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren
 )
@@ -125,7 +152,7 @@ def register():
         bpy.utils.register_class(c)
 
     # add menu items
-    bpy.types.VIEW3D_MT_object.append(menu_func)
+    #bpy.types.VIEW3D_MT_object.append(menu_func)
     
     print('registered ' + bl_info['name'] + ' Addon')
 
@@ -137,7 +164,7 @@ def unregister():
         bpy.utils.unregister_class(c)
         
     #remove menu items
-    bpy.types.VIEW3D_MT_object.remove(menu_func)
+    #bpy.types.VIEW3D_MT_object.remove(menu_func)
     
     
     print('unregistered ' + bl_info['name'] + ' Addon')
