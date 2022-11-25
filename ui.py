@@ -15,10 +15,10 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.label(text='How cool is this!')
+        row.label(text='CAD Helper Addon by Achim Ammon')
 
         row = layout.row()
-        row.operator('object.select', icon = 'SNAP_PEEL_OBJECT')
+        row.operator('object.select_all_children', icon = 'OUTLINER')
         row = layout.row()
         row.operator('object.delete_and_reparent_children', icon = 'SNAP_PEEL_OBJECT')
         row = layout.row()
@@ -29,9 +29,15 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         row = layout.row()
         row.label(text='ToDo:')
         row = layout.row()
+        row.label(text='- Select all children')
+        row = layout.row()
         row.label(text='- Transfer Viewport Display -> Material Nodes')
         row = layout.row()
         row.label(text='- Material Nodes -> Transfer Viewport Display')
+        row = layout.row()
+        row.label(text='- Filter by obj type & name')
+        row = layout.row()
+        row.label(text='- Import / Export: STEP via OpenCascade')
         
 
 

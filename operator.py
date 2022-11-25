@@ -1,5 +1,32 @@
 import bpy
-# from . import __init__
+import mathutils
+
+#####################################################################################
+# Operators
+#####################################################################################
+class SelectAllChildren(bpy.types.Operator):
+    '''
+    Recursivley expands selection to include all of its children
+    '''
+    bl_idname = 'object.select_all_children'
+    bl_label = 'Select All Children Recusivley'
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = __doc__
+    
+    
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+    
+    def execute(self, context):
+        # exit function if no parents / roots have been selected
+        if len(bpy.context.selected_objects) == 0:
+            self.report({'INFO'}, 'No objects were selected. Nothing done...')
+            return {'CANCELLED'}
+        
+        select_hierarchy()
+        
+        return {'FINISHED'}
 
 class DeleteAndReparentChildren(bpy.types.Operator):
     '''
@@ -8,6 +35,7 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and re-parent children'
     bl_options = {"REGISTER", "UNDO"}
+    bl_description = __doc__
     
     
     @classmethod
@@ -39,7 +67,6 @@ class DeleteAndReparentChildren(bpy.types.Operator):
                 
         bpy.data.objects.remove(object)            
 
-
 class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     '''
     Under selected root objects; recursivley deletes all empties that do not have any chlidren parented to it.
@@ -47,7 +74,7 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     bl_idname = 'object.delete_child_empties_without_children'
     bl_label = 'Delete child Empies with no children'
     bl_options = {"REGISTER", "UNDO"}
-    bl_info = ''
+    bl_description = __doc__
         
     @classmethod
     def poll(cls, context):
@@ -61,13 +88,15 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
         
-        # select all the children
-        n = len(bpy.context.selected_objects)
-        dn = 1
-        while dn > 0:
-            bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
-            dn = len(bpy.context.selected_objects) - n
-            n = len(bpy.context.selected_objects)
+        # select all the children recursively
+        # n = len(bpy.context.selected_objects)
+        # dn = 1
+        # while dn > 0:
+        #     bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
+        #     dn = len(bpy.context.selected_objects) - n
+        #     n = len(bpy.context.selected_objects)
+        select_hierarchy()
+        
         sel = bpy.context.selected_objects
         
         # keep only type=empty
@@ -88,7 +117,6 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
         
         # restore selection as of before
         bpy.ops.object.select_all(action='DESELECT')
-        print(init_selection)
         [obj.select_set(True) for obj in init_selection]
 
         return {'FINISHED'}
@@ -96,29 +124,109 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
         
 class FilterSelectionBySize(bpy.types.Operator):
     '''
-    Under selected root objects; recursivley deletes all empties that do not have any chlidren parented to it.
+    Filter all the selected objects by the size of their bouning box (diagonal).
     '''
     bl_idname = 'object.filter_selection_by_size'
     bl_label = 'Filter Selection by Bounding Box Size'
     bl_options = {"REGISTER", "UNDO"}
-    bl_info = ''
+    bl_description = __doc__
         
-    @classmethod
-    def poll(cls, context):
-        return context.active_object is not None
+    # @classmethod
+    # def poll(cls, context):
+    #     return context.active_object is not None
     
+    # def execute(self, context):
+    #     # exit function if no objects have been selected
+    #     if len(bpy.context.selected_objects) == 0:
+    #         self.report({'INFO'}, 'No objects were selected. Nothing done...')
+    #         return {'CANCELLED'}
+        
+    #     print([[obj.type, obj.name, obj.dimensions.length] for obj in bpy.context.selected_objects])
+        
+    #     return {'FINISHED'}
+
+    dynamic_min = bpy.props.IntProperty(
+        name='dynamic_min',
+        default=0
+    )
+    dynamic_max = bpy.props.IntProperty(
+        name='dynamic_max',
+        default=1
+    )
+    
+    flag_prop: bpy.props.BoolProperty(name = "Use Int")
+    dependent_prop: bpy.props.IntProperty(name = "My Property")
+
+    prop_mesh: bpy.props.BoolProperty(name='Mesh', default=True)
+    prop_curve: bpy.props.BoolProperty(name='Curve', default=True)
+    prop_text: bpy.props.BoolProperty(name='Text', default=True)
+    prop_empty: bpy.props.BoolProperty(name='Empty', default=False)
+
+    prop_min: bpy.props.FloatProperty(name='min size', default=0, soft_min=0, soft_max=10)
+    prop_max: bpy.props.FloatProperty(name='max size', default=5, soft_min=0, soft_max=10)
+
     def execute(self, context):
+        init_selection = bpy.context.selected_objects
+        
+        dynamic_min = min([obj.dimensions.length for obj in init_selection])
+        dynamic_max = max([obj.dimensions.length for obj in init_selection])
+        # self.prop_min.soft_min = self.min
+        print(dynamic_min)
+
         # exit function if no objects have been selected
         if len(bpy.context.selected_objects) == 0:
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
         
+        bpy.ops.object.select_all(action='DESELECT')
+        [obj.select_set(True) for obj in init_selection if self.prop_min < obj.dimensions.length < self.prop_max]
+
         return {'FINISHED'}
+    
+    def draw(self, context):
+        self.layout.use_property_split = True
+
+        # row = self.layout.row()
+        # row.prop(self, "flag_prop")
+        
+        # sub = row.row()
+        # sub.enabled = self.flag_prop
+        # sub.prop(self, "dependent_prop", text="")
+
+        row = self.layout.row(heading="Select filter size")
+        row = self.layout.row()
+        row.prop(self, 'prop_min', slider=True)
+        row = self.layout.row()
+        row.prop(self, 'prop_max', slider=True)
+
+        row = self.layout.row(heading="Include Types")
+        sub = row.row(align=True)
+        sub.prop(self, "prop_mesh", toggle=True)
+        sub.prop(self, "prop_curve", toggle=True)
+        sub.prop(self, "prop_text", toggle=True)
+        sub.prop(self, "prop_empty", toggle=True)
+        
+        row = self.layout.row(align=True)
+
+#####################################################################################
+# Functions
+#####################################################################################
+
+def select_hierarchy():
+    # select all the children recursively
+    n = len(bpy.context.selected_objects)
+    dn = 1
+    while dn > 0:
+        bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
+        dn = len(bpy.context.selected_objects) - n
+        n = len(bpy.context.selected_objects)
+
 
 #####################################################################################
 # Add-On Handling
 #####################################################################################
 __classes__ = (
+    SelectAllChildren,
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
     FilterSelectionBySize,
