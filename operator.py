@@ -88,13 +88,6 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
         
-        # select all the children recursively
-        # n = len(bpy.context.selected_objects)
-        # dn = 1
-        # while dn > 0:
-        #     bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
-        #     dn = len(bpy.context.selected_objects) - n
-        #     n = len(bpy.context.selected_objects)
         select_hierarchy()
         
         sel = bpy.context.selected_objects
@@ -130,81 +123,78 @@ class FilterSelectionBySize(bpy.types.Operator):
     bl_label = 'Filter Selection by Bounding Box Size'
     bl_options = {"REGISTER", "UNDO"}
     bl_description = __doc__
-        
-    # @classmethod
-    # def poll(cls, context):
-    #     return context.active_object is not None
-    
-    # def execute(self, context):
-    #     # exit function if no objects have been selected
-    #     if len(bpy.context.selected_objects) == 0:
-    #         self.report({'INFO'}, 'No objects were selected. Nothing done...')
-    #         return {'CANCELLED'}
-        
-    #     print([[obj.type, obj.name, obj.dimensions.length] for obj in bpy.context.selected_objects])
-        
-    #     return {'FINISHED'}
-
-    dynamic_min = bpy.props.IntProperty(
-        name='dynamic_min',
-        default=0
-    )
-    dynamic_max = bpy.props.IntProperty(
-        name='dynamic_max',
-        default=1
-    )
     
     flag_prop: bpy.props.BoolProperty(name = "Use Int")
     dependent_prop: bpy.props.IntProperty(name = "My Property")
 
-    prop_mesh: bpy.props.BoolProperty(name='Mesh', default=True)
-    prop_curve: bpy.props.BoolProperty(name='Curve', default=True)
-    prop_text: bpy.props.BoolProperty(name='Text', default=True)
-    prop_empty: bpy.props.BoolProperty(name='Empty', default=False)
 
-    prop_min: bpy.props.FloatProperty(name='min size', default=0, soft_min=0, soft_max=10)
-    prop_max: bpy.props.FloatProperty(name='max size', default=5, soft_min=0, soft_max=10)
+    # update function, which makes sure min is never lager than max and max is never smaller than min
+    def update_min_func(self, context):
+        if self.prop_max < self.prop_min:
+            self.prop_max = self.prop_min
+    def update_max_func(self, context):
+        if self.prop_min > self.prop_max:
+            self.prop_min = self.prop_max
+    
+    prop_min: bpy.props.FloatProperty(name='Min Size (%)', update=update_min_func, default=0, soft_min=0, soft_max=100, description="%")
+    prop_max: bpy.props.FloatProperty(name='Max Size (%)', update=update_max_func, default=100, soft_min=0, soft_max=100)
+
+    # TODO: ersetzen mit EnumProperties? https://blender.stackexchange.com/questions/200879/dynamic-props-dialog-into-operator
+    prop_types: bpy.props.EnumProperty(
+        name = 'Include Types:',
+        description = "My enum description",
+        items = [
+            # identifier    name       description   number
+            ('MESH', "Mesh", "Active Button"),
+            ('CURVE', "Curve", "Show a Slider"),
+            ('SURFACE', "Surface", "Show a Slider"),
+            ('META', "Metaball", "Show a Slider"),
+            ('FONT', "Text", "Show a Slider"),
+            ('VOLUME', "Volue", "Show a Slider"),
+            ('EMPTY', "Empty", "Show a Slider")
+            ],
+            options = {"ENUM_FLAG"}
+    )
+
 
     def execute(self, context):
-        init_selection = bpy.context.selected_objects
-        
-        dynamic_min = min([obj.dimensions.length for obj in init_selection])
-        dynamic_max = max([obj.dimensions.length for obj in init_selection])
-        # self.prop_min.soft_min = self.min
-        print(dynamic_min)
-
+        self.init_selection = bpy.context.selected_objects
         # exit function if no objects have been selected
-        if len(bpy.context.selected_objects) == 0:
+        if len(self.init_selection) == 0:
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
         
         bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in init_selection if self.prop_min < obj.dimensions.length < self.prop_max]
+
+        # do the filtering of the selection here...
+        biggest_size = max([obj.dimensions.length for obj in self.init_selection])
+        [
+            obj.select_set(True)
+            for
+            obj
+            in
+            self.init_selection
+            if
+            self.prop_min <= obj.dimensions.length/biggest_size*100 <= self.prop_max
+            and
+            obj.type in self.prop_types
+            ]
+        
+        self.report({'INFO'}, '{0} of {1} are currently selected'.format(len(bpy.context.selected_objects), len(self.init_selection)))
 
         return {'FINISHED'}
     
     def draw(self, context):
         self.layout.use_property_split = True
-
-        # row = self.layout.row()
-        # row.prop(self, "flag_prop")
-        
-        # sub = row.row()
-        # sub.enabled = self.flag_prop
-        # sub.prop(self, "dependent_prop", text="")
+        col = self.layout.column(heading="Include Types")
+        sub = col.column(align=True)
+        sub.prop(self, "prop_types", toggle=True)
 
         row = self.layout.row(heading="Select filter size")
         row = self.layout.row()
         row.prop(self, 'prop_min', slider=True)
         row = self.layout.row()
         row.prop(self, 'prop_max', slider=True)
-
-        row = self.layout.row(heading="Include Types")
-        sub = row.row(align=True)
-        sub.prop(self, "prop_mesh", toggle=True)
-        sub.prop(self, "prop_curve", toggle=True)
-        sub.prop(self, "prop_text", toggle=True)
-        sub.prop(self, "prop_empty", toggle=True)
         
         row = self.layout.row(align=True)
 

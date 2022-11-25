@@ -27,4 +27,4 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
     1. Hit install and select the downloaded *.zip file
     1. Activate the addon by ticking the box
 
-The add-on can then be accessed in the 3D view right side-bar (T-menu).
+The add-on can then be accessed in the 3D view right side-bar (N-menu).

@@ -29,8 +29,6 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         row = layout.row()
         row.label(text='ToDo:')
         row = layout.row()
-        row.label(text='- Select all children')
-        row = layout.row()
         row.label(text='- Transfer Viewport Display -> Material Nodes')
         row = layout.row()
         row.label(text='- Material Nodes -> Transfer Viewport Display')
