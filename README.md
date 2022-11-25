@@ -20,7 +20,7 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
 - [ ] Import / Export: STEP via OpenCascade
 
 # Installation:
-1. Download the *.zip file onto your hard-drive
+1. Download the *.zip file onto your hard-drive  
     ![Markdown image](/images/download-addon.png)
 1. In Blender
     1. Got to Edit / Preferences / Add-ons
