@@ -24,7 +24,7 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         row = layout.row()
         row.operator('object.delete_child_empties_without_children', icon='CON_CHILDOF')
         row = layout.row()
-        row.operator('object.filter_selection_by_size', icon='FILTER')
+        row.operator('object.filter_selection', icon='FILTER')
 
         row = layout.row()
         row.label(text='ToDo:')
