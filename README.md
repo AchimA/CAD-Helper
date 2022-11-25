@@ -21,7 +21,7 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
 
 # Installation:
 1. Download the *.zip file onto your hard-drive
-   ![Markdown image](/images/download-addon.png){width=200}
+    ![Markdown image](/images/download-addon.png)
 1. In Blender
     1. Got to Edit / Preferences / Add-ons
     1. Hit install and select the downloaded *.zip file
