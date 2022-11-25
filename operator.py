@@ -1,12 +1,15 @@
 import bpy
 import mathutils
+import re
+import fnmatch
+
 
 #####################################################################################
 # Operators
 #####################################################################################
 class SelectAllChildren(bpy.types.Operator):
     '''
-    Recursivley expands selection to include all of its children
+    Recursivley expands selection to include all the children of an initial selection.
     '''
     bl_idname = 'object.select_all_children'
     bl_label = 'Select All Children Recusivley'
@@ -31,6 +34,7 @@ class SelectAllChildren(bpy.types.Operator):
 class DeleteAndReparentChildren(bpy.types.Operator):
     '''
     Reconnects all the children of an object to it's parent (if available) before deleting the object.
+    This allows to keep the hierarchy when deleting objects from a structured assebly.
     '''
     bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and re-parent children'
@@ -69,7 +73,7 @@ class DeleteAndReparentChildren(bpy.types.Operator):
 
 class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     '''
-    Under selected root objects; recursivley deletes all empties that do not have any chlidren parented to it.
+    Under selected root objects; recursivley deletes all empties that do not have any chlidren.
     '''
     bl_idname = 'object.delete_child_empties_without_children'
     bl_label = 'Delete child Empies with no children'
@@ -115,19 +119,18 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
         return {'FINISHED'}
 
         
-class FilterSelectionBySize(bpy.types.Operator):
+class FilterSelection(bpy.types.Operator):
     '''
-    Filter all the selected objects by the size of their bouning box (diagonal).
+    Filter all the selected objects by:
+        - Object Name
+        - Object Type
+        - Bounding Box Dimensions (diagonaly)
     '''
-    bl_idname = 'object.filter_selection_by_size'
-    bl_label = 'Filter Selection by Bounding Box Size'
+    bl_idname = 'object.filter_selection'
+    bl_label = 'Filter Selection '
     bl_options = {"REGISTER", "UNDO"}
     bl_description = __doc__
     
-    flag_prop: bpy.props.BoolProperty(name = "Use Int")
-    dependent_prop: bpy.props.IntProperty(name = "My Property")
-
-
     # update function, which makes sure min is never lager than max and max is never smaller than min
     def update_min_func(self, context):
         if self.prop_max < self.prop_min:
@@ -136,7 +139,10 @@ class FilterSelectionBySize(bpy.types.Operator):
         if self.prop_min > self.prop_max:
             self.prop_min = self.prop_max
     
-    prop_min: bpy.props.FloatProperty(name='Min Size (%)', update=update_min_func, default=0, soft_min=0, soft_max=100, description="%")
+    prop_use_regex: bpy.props.BoolProperty(name='Use Regex', default=False)
+    prop_namefilter: bpy.props.StringProperty(name='Name Filter', default='*')
+
+    prop_min: bpy.props.FloatProperty(name='Min Size (%)', update=update_min_func, default=0, soft_min=0, soft_max=100)
     prop_max: bpy.props.FloatProperty(name='Max Size (%)', update=update_max_func, default=100, soft_min=0, soft_max=100)
 
     # TODO: ersetzen mit EnumProperties? https://blender.stackexchange.com/questions/200879/dynamic-props-dialog-into-operator
@@ -155,7 +161,16 @@ class FilterSelectionBySize(bpy.types.Operator):
             ],
             options = {"ENUM_FLAG"}
     )
+    
+    
+    # def __init__(self):
+    #     pass
 
+    def invoke(self, context, event):
+        #set default object types:
+        self.prop_types={'MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'VOLUME'}
+        
+        return self.execute(context)
 
     def execute(self, context):
         self.init_selection = bpy.context.selected_objects
@@ -165,6 +180,21 @@ class FilterSelectionBySize(bpy.types.Operator):
             return {'CANCELLED'}
         
         bpy.ops.object.select_all(action='DESELECT')
+
+        # prepair name filtering regex:
+        if self.prop_use_regex:
+            try:
+                pattern = re.compile(self.prop_namefilter)
+            except:
+                self.report({'INFO'}, 'Regex failed, no matches returned.')
+                pattern = re.compile('a^')
+        else:
+            p_string = self.prop_namefilter
+            p_string = p_string.replace('*', '.*') # match any character 1 or more times
+            p_string = p_string.replace('%', '.*') # match any character 1 or more times
+            p_string = p_string.replace('?', '.{1}') # match single character
+            p_string = '(?i)' + p_string
+            pattern = re.compile(p_string)
 
         # do the filtering of the selection here...
         biggest_size = max([obj.dimensions.length for obj in self.init_selection])
@@ -178,6 +208,8 @@ class FilterSelectionBySize(bpy.types.Operator):
             self.prop_min <= obj.dimensions.length/biggest_size*100 <= self.prop_max
             and
             obj.type in self.prop_types
+            and
+            re.match(pattern, obj.name)
             ]
         
         self.report({'INFO'}, '{0} of {1} are currently selected'.format(len(bpy.context.selected_objects), len(self.init_selection)))
@@ -185,18 +217,54 @@ class FilterSelectionBySize(bpy.types.Operator):
         return {'FINISHED'}
     
     def draw(self, context):
-        self.layout.use_property_split = True
-        col = self.layout.column(heading="Include Types")
-        sub = col.column(align=True)
-        sub.prop(self, "prop_types", toggle=True)
 
-        row = self.layout.row(heading="Select filter size")
-        row = self.layout.row()
-        row.prop(self, 'prop_min', slider=True)
-        row = self.layout.row()
-        row.prop(self, 'prop_max', slider=True)
+        layout = self.layout
+        layout.use_property_split = True
+        layout.label(text='Filter Selection')
         
-        row = self.layout.row(align=True)
+        
+        box = layout.box()
+        row = box.row()
+        row.label(text='Filter by Object Name', icon='GREASEPENCIL')
+        row.prop(self, 'prop_use_regex')
+        box.prop(self, 'prop_namefilter')
+
+        layout.separator(factor=1)
+
+        box = layout.box()
+        box.label(text='Filter by Object Type', icon='OBJECT_DATA')
+        box.prop(self, "prop_types", toggle=True)
+        
+        layout.separator(factor=1)
+
+        box = layout.box()
+        box.label(text='Filter by Size', icon='FIXED_SIZE')
+        box.prop(self, 'prop_min', slider=True)
+        box.prop(self, 'prop_max', slider=True)
+        
+        
+    # def draw(self, context):
+
+    #     layout = self.layout
+    #     layout.label('Filter Selection')
+        
+    #     row = layout.row(heading="Filter by Name")
+    #     col = layout.column()
+    #     col.prop(self, 'prop_use_regex')
+    #     col.prop(self, 'prop_namefilter')
+
+    #     layout.use_property_split = True
+    #     col = layout.column(heading="Include Types")
+    #     sub = col.column(align=True)
+    #     sub.prop(self, "prop_types", toggle=True)
+
+    #     row = layout.row(heading="Select filter size")
+    #     row = layout.row()
+    #     row.prop(self, 'prop_min', slider=True)
+    #     row = layout.row()
+    #     row.prop(self, 'prop_max', slider=True)
+        
+    #     row = layout.row(align=True)
 
 #####################################################################################
 # Functions
@@ -219,7 +287,7 @@ __classes__ = (
     SelectAllChildren,
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
-    FilterSelectionBySize,
+    FilterSelection,
 )
 
 def register():

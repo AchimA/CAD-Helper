@@ -14,28 +14,18 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
 
         layout = self.layout
 
-        row = layout.row()
-        row.label(text='CAD Helper Addon by Achim Ammon')
+        layout.label(text='CAD Helper Addon by Achim Ammon')
 
-        row = layout.row()
-        row.operator('object.select_all_children', icon = 'OUTLINER')
-        row = layout.row()
-        row.operator('object.delete_and_reparent_children', icon = 'SNAP_PEEL_OBJECT')
-        row = layout.row()
-        row.operator('object.delete_child_empties_without_children', icon='CON_CHILDOF')
-        row = layout.row()
-        row.operator('object.filter_selection_by_size', icon='FILTER')
+        layout.operator('object.select_all_children', icon = 'OUTLINER')
+        layout.operator('object.delete_and_reparent_children', icon = 'SNAP_PEEL_OBJECT')
+        layout.operator('object.delete_child_empties_without_children', icon='CON_CHILDOF')
+        layout.operator('object.filter_selection', icon='FILTER')
 
-        row = layout.row()
-        row.label(text='ToDo:')
-        row = layout.row()
-        row.label(text='- Transfer Viewport Display -> Material Nodes')
-        row = layout.row()
-        row.label(text='- Material Nodes -> Transfer Viewport Display')
-        row = layout.row()
-        row.label(text='- Filter by obj type & name')
-        row = layout.row()
-        row.label(text='- Import / Export: STEP via OpenCascade')
+        box = layout.box()
+        box.label(text='ToDo:')
+        box.label(text='- Transfer: Viewport Display -> Material Nodes')
+        box.label(text='- Transfer: Material Nodes -> Viewport Display')
+        box.label(text='- Import / Export: STEP via OpenCascade')
         
 
 
