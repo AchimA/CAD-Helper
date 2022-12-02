@@ -20,6 +20,7 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         layout.operator('object.delete_and_reparent_children', icon = 'SNAP_PEEL_OBJECT')
         layout.operator('object.delete_child_empties_without_children', icon='CON_CHILDOF')
         layout.operator('object.filter_selection', icon='FILTER')
+        layout.operator('object.list_materials', icon='FILTER')
 
         box = layout.box()
         box.label(text='ToDo:')

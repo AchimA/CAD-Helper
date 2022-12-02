@@ -19,7 +19,7 @@ class SelectAllChildren(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None
+        return context.selected_objects
     
     def execute(self, context):
         # exit function if no parents / roots have been selected
@@ -35,6 +35,9 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     '''
     Reconnects all the children of an object to it's parent (if available) before deleting the object.
     This allows to keep the hierarchy when deleting objects from a structured assebly.
+
+    TODO:
+    - Unexpected behaviour when deleting the root object with this operator
     '''
     bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and re-parent children'
@@ -44,7 +47,7 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None
+        return context.selected_objects
     
     def execute(self, context):
         # exit function if no parents / roots have been selected
@@ -79,10 +82,10 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     bl_label = 'Delete child Empies with no children'
     bl_options = {"REGISTER", "UNDO"}
     bl_description = __doc__
-        
+    
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None
+        return context.selected_objects
     
     def execute(self, context):
         init_selection = bpy.context.selected_objects
@@ -165,6 +168,7 @@ class FilterSelection(bpy.types.Operator):
     
     # def __init__(self):
     #     pass
+    
 
     def invoke(self, context, event):
         #set default object types:
@@ -241,30 +245,22 @@ class FilterSelection(bpy.types.Operator):
         box.label(text='Filter by Size', icon='FIXED_SIZE')
         box.prop(self, 'prop_min', slider=True)
         box.prop(self, 'prop_max', slider=True)
-        
-        
-    # def draw(self, context):
 
-    #     layout = self.layout
-    #     layout.label('Filter Selection')
-        
-    #     row = layout.row(heading="Filter by Name")
-    #     col = layout.column()
-    #     col.prop(self, 'prop_use_regex')
-    #     col.prop(self, 'prop_namefilter')
 
-    #     layout.use_property_split = True
-    #     col = layout.column(heading="Include Types")
-    #     sub = col.column(align=True)
-    #     sub.prop(self, "prop_types", toggle=True)
+class ListMaterialsOperator(bpy.types.Operator):
+    """Lists all materials of selected objects"""
+    bl_idname = "object.list_materials"
+    bl_label = "List Materials"
 
-    #     row = layout.row(heading="Select filter size")
-    #     row = layout.row()
-    #     row.prop(self, 'prop_min', slider=True)
-    #     row = layout.row()
-    #     row.prop(self, 'prop_max', slider=True)
-        
-    #     row = layout.row(align=True)
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    def execute(self, context):
+        material_list = get_material_list(context)
+        for mat in material_list:
+            self.report({'INFO'}, mat.name)
+        return {'FINISHED'}
 
 #####################################################################################
 # Functions
@@ -279,6 +275,13 @@ def select_hierarchy():
         dn = len(bpy.context.selected_objects) - n
         n = len(bpy.context.selected_objects)
 
+def get_material_list(context):
+    material_list = []
+    for obj in context.selected_objects:
+        for mat in obj.material_slots:
+            if mat.material != None and mat.material not in material_list:
+                material_list.append(mat.material)
+    return material_list
 
 #####################################################################################
 # Add-On Handling
@@ -288,6 +291,7 @@ __classes__ = (
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
     FilterSelection,
+    ListMaterialsOperator,
 )
 
 def register():
