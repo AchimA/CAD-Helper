@@ -1,5 +1,4 @@
 import bpy
-# from . import __init__
 
 # side panel:
 class CAD_HELPER_PT_Panel(bpy.types.Panel):

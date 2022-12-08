@@ -1,15 +1,6 @@
 import bpy
 
 bl_info = {
-    'name': 'CAD-Helper',
-    'description': 'Adds additional object selection and deletion functionality for hierarchically structured assemblies.',
-    'author': 'Achim Ammon',
-    'version': (0, 0, 5),
-    'blender': (3, 1, 0),
-    'support' : 'TESTING ',
-    'category': 'Object',
-}
-bl_info = {
     "name": "CAD-Helper",
     "author": "Achim Ammon",
     "version": (0, 0, 5),
@@ -17,6 +8,7 @@ bl_info = {
     "description": "Adds additional object selection and deletion functionality for hierarchically structured assemblies.",
     "warning": "",
     "doc_url": "",
+    'support' : 'TESTING',
     "category": "Object",
 }
     # "location": "View3D > Add > Mesh > New Object",
@@ -51,3 +43,5 @@ def unregister():
 
 if __name__ == "__main__":
     register()
+
+# https://b3d.interplanety.org/en/creating-multifile-add-on-for-blender/
