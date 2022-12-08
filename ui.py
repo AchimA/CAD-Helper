@@ -39,10 +39,6 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         box.operator('object.transfer_vp_to_nodes', icon='TRIA_LEFT')
         box.operator('object.transfer_nodes_to_vp', icon='TRIA_RIGHT')
 
-        box = layout.box()
-        box.label(text='ToDo:')
-        box.label(text='- Flatten Selected Hierarchy')
-        box.label(text='- Join Selected Object on the same level')
         
 
 

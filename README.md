@@ -1,6 +1,8 @@
 # Blender Addon: CAD Helper
 Blender Addon for imported CAD assemblies.
 
+    ![Markdown image](/images/UI-Panel.png)
+
 ## Functions:
 
 In a hierarchical CAD model (with sub-assemblies and parts), select one or more of the objects. You can then:
@@ -22,7 +24,7 @@ This is sometimes required as some CAD export color, roughness & alpha to the Vi
 - [ ] Join Selected Object on the same level
 
 # Installation:
-1. Download the *.zip file onto your hard-drive  
+1. Download the *.zip file onto your hard-drive
     ![Markdown image](/images/download-addon.png)
 1. In Blender
     1. Got to Edit / Preferences / Add-ons
