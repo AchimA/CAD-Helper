@@ -2,7 +2,7 @@ import bpy
 
 bl_info = {
     # required
-    'name': 'CAD Helper',
+    'name': 'CAD-Helper',
     'blender': (3, 1, 0),
     'category': 'Object',
     # optional
