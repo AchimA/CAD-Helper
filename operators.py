@@ -7,6 +7,71 @@ import fnmatch
 #####################################################################################
 # Operators
 #####################################################################################
+
+class SelectParentsExtend(bpy.types.Operator):
+    '''
+    Extends the selection to the parent of all the selected objects
+    '''
+    bl_idname = 'object.extend_selection_to_parents'
+    bl_label = 'Extend Selection to Parents'
+    bl_options = {"REGISTER", "UNDO"}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+    
+    def execute(self, context):
+        bpy.ops.object.select_hierarchy(direction='PARENT', extend=True)
+        return {'FINISHED'}
+
+class SelectParent(bpy.types.Operator):
+    '''
+    Selects the immidiate parent of all the selected objects
+    '''
+    bl_idname = 'object.select_parent'
+    bl_label = 'Select Parent'
+    bl_options = {"REGISTER", "UNDO"}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+    
+    def execute(self, context):
+        bpy.ops.object.select_hierarchy(direction='PARENT', extend=False)
+        return {'FINISHED'}
+
+class SelectChildren(bpy.types.Operator):
+    '''
+    Selects the immidiate child of all the selected objects
+    '''
+    bl_idname = 'object.select_children'
+    bl_label = 'Select Children'
+    bl_options = {"REGISTER", "UNDO"}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+    
+    def execute(self, context):
+        bpy.ops.object.select_hierarchy(direction='CHILD', extend=False)
+        return {'FINISHED'}
+
+class SelectChildrenExtend(bpy.types.Operator):
+    '''
+    Extends the selection to the child of all the selected objects
+    '''
+    bl_idname = 'object.extend_selection_to_children'
+    bl_label = 'Extend Selection to Children'
+    bl_options = {"REGISTER", "UNDO"}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+    
+    def execute(self, context):
+        bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
+        return {'FINISHED'}
+
 class SelectAllChildren(bpy.types.Operator):
     '''
     Recursivley expands selection to include all the children of an initial selection.
@@ -14,7 +79,6 @@ class SelectAllChildren(bpy.types.Operator):
     bl_idname = 'object.select_all_children'
     bl_label = 'Select All Children Recusivley'
     bl_options = {"REGISTER", "UNDO"}
-    bl_description = __doc__
     
     
     @classmethod
@@ -121,6 +185,14 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
 
         return {'FINISHED'}
 
+def select_hierarchy():
+    # select all the children recursively
+    n = len(bpy.context.selected_objects)
+    dn = 1
+    while dn > 0:
+        bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
+        dn = len(bpy.context.selected_objects) - n
+        n = len(bpy.context.selected_objects)
         
 class FilterSelection(bpy.types.Operator):
     '''
@@ -247,10 +319,10 @@ class FilterSelection(bpy.types.Operator):
         box.prop(self, 'prop_max', slider=True)
 
 
-class ListMaterialsOperator(bpy.types.Operator):
-    """Lists all materials of selected objects"""
-    bl_idname = "object.list_materials"
-    bl_label = "List Materials"
+class Transfer_VP_to_Nodes(bpy.types.Operator):
+    """Transfer: Viewport Display -> Material Nodes"""
+    bl_idname = "object.transfer_vp_to_nodes"
+    bl_label = "Transfer: Viewport Display -> Material Nodes"
 
     @classmethod
     def poll(cls, context):
@@ -258,22 +330,51 @@ class ListMaterialsOperator(bpy.types.Operator):
 
     def execute(self, context):
         material_list = get_material_list(context)
+        ok = 0
+        err = 0
         for mat in material_list:
-            self.report({'INFO'}, mat.name)
+            try:
+                self.report({'INFO'}, 'Processing:\t{}'.format(mat.name))
+                mat.node_tree.nodes['Principled BSDF'].inputs[0].default_value = mat.diffuse_color
+                mat.node_tree.nodes['Principled BSDF'].inputs[6].default_value = mat.metallic
+                mat.node_tree.nodes['Principled BSDF'].inputs[9].default_value = mat.roughness
+                ok += 1
+            except:
+                # Errror Handling, falls etwas schief läuft....
+                self.report({'INFO'}, 'WARNING!:\tThere has been an error processing \'{}\''.format(mat.name))
+                err += 1
+        self.report({'INFO'}, 'Processing Matterial ({} OK, {} errors)'.format(ok, err))
+
         return {'FINISHED'}
 
-#####################################################################################
-# Functions
-#####################################################################################
+class Transfer_Nodes_to_VP(bpy.types.Operator):
+    """Transfer: Material Nodes -> Viewport Display"""
+    bl_idname = "object.transfer_nodes_to_vp"
+    bl_label = "Transfer: Material Nodes -> Viewport Display"
 
-def select_hierarchy():
-    # select all the children recursively
-    n = len(bpy.context.selected_objects)
-    dn = 1
-    while dn > 0:
-        bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
-        dn = len(bpy.context.selected_objects) - n
-        n = len(bpy.context.selected_objects)
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    def execute(self, context):
+        material_list = get_material_list(context)
+        ok = 0
+        err = 0
+        for mat in material_list:
+            try:
+                self.report({'INFO'}, 'Processing:\t{}'.format(mat.name))
+                mat.diffuse_color = mat.node_tree.nodes['Principled BSDF'].inputs[0].default_value
+                mat.metallic = mat.node_tree.nodes['Principled BSDF'].inputs[6].default_value
+                mat.roughness = mat.node_tree.nodes['Principled BSDF'].inputs[9].default_value
+                ok += 1
+            except:
+                # Errror Handling, falls etwas schief läuft....
+                self.report({'INFO'}, 'WARNING!:\tThere has been an error processing \'{}\''.format(mat.name))
+                err += 1
+        self.report({'INFO'}, 'Processing Matterial ({} OK, {} errors)'.format(ok, err))
+
+        return {'FINISHED'}
+
 
 def get_material_list(context):
     material_list = []
@@ -283,15 +384,22 @@ def get_material_list(context):
                 material_list.append(mat.material)
     return material_list
 
+
+
 #####################################################################################
 # Add-On Handling
 #####################################################################################
 __classes__ = (
     SelectAllChildren,
+    SelectParentsExtend,
+    SelectParent,
+    SelectChildren,
+    SelectChildrenExtend,
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
     FilterSelection,
-    ListMaterialsOperator,
+    Transfer_VP_to_Nodes,
+    Transfer_Nodes_to_VP,
 )
 
 def register():

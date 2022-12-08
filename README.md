@@ -5,18 +5,21 @@ Blender Addon for imported CAD assemblies.
 
 In a hierarchical CAD model (with sub-assemblies and parts), select one or more of the objects. You can then:
 * Recursivley select all of it's child elements
-* Delete one or multiple objects in the hirarchy. All the children of the selected objects are automatically reconnected to their 'grand-parents' before they are deleted.
+* Select parent or child objects (with or without extending the selection)
 * Below the selected object(s); all leafes empties (empties without children) are deleted.
 * **Filter selection**
     * Allows you to filter all the selected parts by bounding box. Lets you specifiy a min and max size in % relative to the selected parts.
     * Allows you to filter all the selected parts by object type (EMPTY, MESH, CURVE, etc.)
     * Allows you to filter all the selected parts by their name (simple string match & RegEx)
+* Delete one or multiple objects in the hirarchy. All the children of the selected objects are automatically reconnected to their 'grand-parents' before they are deleted.
+* Delete all (leaf) empties that don't have any (non-empty type) children
+* Transfer material properties between Principled BSDF Node and View Port Display settings
+This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM)
 
 
 ## Yet to be implemented:
-
-- [ ] Transfer: Viewport Display -> Material Nodes
-- [ ] Transfer: Material Nodes -> Viewport Display
+- [ ] Flatten Selected Hierarchy
+- [ ] Join Selected Object on the same level
 
 # Installation:
 1. Download the *.zip file onto your hard-drive  

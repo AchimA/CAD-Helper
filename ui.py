@@ -16,10 +16,27 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         layout.label(text='CAD Helper Addon by Achim Ammon')
 
         layout.operator('object.select_all_children', icon = 'OUTLINER')
-        layout.operator('object.delete_and_reparent_children', icon = 'SNAP_PEEL_OBJECT')
-        layout.operator('object.delete_child_empties_without_children', icon='CON_CHILDOF')
-        layout.operator('object.filter_selection', icon='FILTER')
-        layout.operator('object.list_materials', icon='FILTER')
+        
+        box = layout.box()
+        box.label(text = 'Selection Helper')
+        box.operator('object.extend_selection_to_parents', icon = 'TRIA_UP_BAR')
+        box.operator('object.select_parent', icon = 'TRIA_UP')
+        box.operator('object.select_children', icon = 'TRIA_DOWN')
+        box.operator('object.extend_selection_to_children', icon = 'TRIA_DOWN_BAR')
+
+        box = layout.box()
+        box.label(text = 'Selection Filtering')
+        box.operator('object.filter_selection', icon='FILTER')
+
+        box = layout.box()
+        box.label(text = 'Object Removal')
+        box.operator('object.delete_and_reparent_children', icon = 'SNAP_PEEL_OBJECT')
+        box.operator('object.delete_child_empties_without_children', icon='CON_CHILDOF')
+
+        box = layout.box()
+        box.label(text = 'Transfer Material Properties')
+        box.operator('object.transfer_vp_to_nodes', icon='TRIA_LEFT')
+        box.operator('object.transfer_nodes_to_vp', icon='TRIA_RIGHT')
 
         box = layout.box()
         box.label(text='ToDo:')
