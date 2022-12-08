@@ -1,15 +1,13 @@
 import bpy
 
 bl_info = {
-    # required
     'name': 'CAD-Helper',
-    'blender': (3, 1, 0),
-    'category': 'Object',
-    # optional
-    'version': (0, 0, 5),
-    'support' : 'TESTING ',
-    'author': 'Achim Ammon',
     'description': 'Adds additional object selection and deletion functionality.',
+    'author': 'Achim Ammon',
+    'version': (0, 0, 5),
+    'blender': (3, 1, 0),
+    'support' : 'TESTING ',
+    'category': 'Object'
 }
 
 modulesNames = ['ui', 'operator']
