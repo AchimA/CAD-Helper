@@ -1,8 +1,7 @@
 # Blender Addon: CAD Helper
 Blender Addon for imported CAD assemblies.
 
-![Markdown image](/images/ui-panel.png)
-
+<img src="images/ui-panel.png" alt="User Interface" width="350"/>
 
 ## Functions:
 
@@ -25,8 +24,10 @@ This is sometimes required as some CAD export color, roughness & alpha to the Vi
 - [ ] Join Selected Object on the same level
 
 # Installation:
+
+<img src="images/download-addon.png" alt="Addon Download" width="400"/>
+
 1. Download the *.zip file onto your hard-drive
-    ![Markdown image](/images/download-addon.png)
 1. In Blender
     1. Got to Edit / Preferences / Add-ons
     1. Hit install and select the downloaded *.zip file

@@ -12,8 +12,6 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
     def draw(self, context):
 
         layout = self.layout
-
-        layout.label(text='CAD Helper Addon by Achim Ammon')
         
         box = layout.box()
         box.label(text = 'Selection Helper')
@@ -22,7 +20,7 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         grid.operator('object.extend_selection_to_children', icon = 'TRIA_DOWN_BAR')
         grid.operator('object.select_parent', icon = 'TRIA_UP')
         grid.operator('object.select_children', icon = 'TRIA_DOWN')
-        box.separator()
+        # box.separator()
         box.operator('object.select_all_children', icon = 'OUTLINER')
 
         box = layout.box()
