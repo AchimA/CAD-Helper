@@ -7,17 +7,16 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
 * Recursivley select all of it's child elements
 * Delete one or multiple objects in the hirarchy. All the children of the selected objects are automatically reconnected to their 'grand-parents' before they are deleted.
 * Below the selected object(s); all leafes empties (empties without children) are deleted.
-* **Filter selection by Size**
-    * Allows you to filter all the selected parts by bounding box. Lets you specifiy a min and max size.
+* **Filter selection**
+    * Allows you to filter all the selected parts by bounding box. Lets you specifiy a min and max size in % relative to the selected parts.
     * Allows you to filter all the selected parts by object type (EMPTY, MESH, CURVE, etc.)
+    * Allows you to filter all the selected parts by their name (simple string match & RegEx)
 
 
 ## Yet to be implemented:
 
-- [ ] Filter by obj type & name
 - [ ] Transfer: Viewport Display -> Material Nodes
 - [ ] Transfer: Material Nodes -> Viewport Display
-- [ ] Import / Export: STEP via OpenCascade
 
 # Installation:
 1. Download the *.zip file onto your hard-drive  

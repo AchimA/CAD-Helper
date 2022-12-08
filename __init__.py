@@ -8,7 +8,7 @@ bl_info = {
     "description": "Adds additional object selection and deletion functionality for hierarchically structured assemblies.",
     "warning": "",
     "doc_url": "",
-    'support' : 'TESTING',
+    'support' : 'COMMUNITY',
     "category": "Object",
 }
     # "location": "View3D > Add > Mesh > New Object",

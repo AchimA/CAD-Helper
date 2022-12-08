@@ -25,7 +25,6 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         box.label(text='ToDo:')
         box.label(text='- Transfer: Viewport Display -> Material Nodes')
         box.label(text='- Transfer: Material Nodes -> Viewport Display')
-        box.label(text='- Import / Export: STEP via OpenCascade')
         
 
 
