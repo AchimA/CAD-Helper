@@ -1,7 +1,8 @@
 # Blender Addon: CAD Helper
 Blender Addon for imported CAD assemblies.
 
-    ![Markdown image](/images/UI-Panel.png)
+![Markdown image](/images/ui-panel.png)
+
 
 ## Functions:
 
