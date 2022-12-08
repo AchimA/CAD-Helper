@@ -6,7 +6,7 @@ bl_info = {
     'blender': (3, 1, 0),
     'category': 'Object',
     # optional
-    'version': (0, 0, 3),
+    'version': (0, 0, 5),
     'support' : 'TESTING ',
     'author': 'Achim Ammon',
     'description': 'Adds additional object selection and deletion functionality.',
