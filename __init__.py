@@ -7,10 +7,10 @@ bl_info = {
     'version': (0, 0, 5),
     'blender': (3, 1, 0),
     'support' : 'TESTING ',
-    'category': 'Object'
+    'category': 'Object',
 }
 
-modulesNames = ['ui', 'operator']
+modulesNames = ['ui', 'operators']
 
 import sys
 import importlib
