@@ -14,15 +14,16 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         layout = self.layout
 
         layout.label(text='CAD Helper Addon by Achim Ammon')
-
-        layout.operator('object.select_all_children', icon = 'OUTLINER')
         
         box = layout.box()
         box.label(text = 'Selection Helper')
-        box.operator('object.extend_selection_to_parents', icon = 'TRIA_UP_BAR')
-        box.operator('object.select_parent', icon = 'TRIA_UP')
-        box.operator('object.select_children', icon = 'TRIA_DOWN')
-        box.operator('object.extend_selection_to_children', icon = 'TRIA_DOWN_BAR')
+        grid = box.grid_flow(columns = 2, align = True)
+        grid.operator('object.extend_selection_to_parents', icon = 'TRIA_UP_BAR')
+        grid.operator('object.extend_selection_to_children', icon = 'TRIA_DOWN_BAR')
+        grid.operator('object.select_parent', icon = 'TRIA_UP')
+        grid.operator('object.select_children', icon = 'TRIA_DOWN')
+        box.separator()
+        box.operator('object.select_all_children', icon = 'OUTLINER')
 
         box = layout.box()
         box.label(text = 'Selection Filtering')
@@ -40,8 +41,8 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='ToDo:')
-        box.label(text='- Transfer: Viewport Display -> Material Nodes')
-        box.label(text='- Transfer: Material Nodes -> Viewport Display')
+        box.label(text='- Flatten Selected Hierarchy')
+        box.label(text='- Join Selected Object on the same level')
         
 
 
