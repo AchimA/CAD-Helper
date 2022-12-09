@@ -3,7 +3,7 @@ import bpy
 bl_info = {
     "name": "CAD-Helper",
     "author": "A. R. Ammon",
-    "version": (0, 0, 5),
+    "version": (0, 1, 0),
     "blender": (3, 10, 0),
     "description": "Adds additional object selection and deletion functionality for hierarchically structured assemblies.",
     "warning": "",
