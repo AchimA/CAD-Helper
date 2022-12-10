@@ -1,7 +1,7 @@
 # Blender Addon: CAD Helper
 Blender Addon for imported CAD assemblies.
 
-<img src="images/ui-panel.png" alt="User Interface" width="350"/>
+<img src="images/ui-panel.png" alt="User Interface" width="300"/>
 
 ## Functions:
 
@@ -19,18 +19,16 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
 This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM)
 
 
-## Yet to be implemented:
+## Plans for implementing:
 - [ ] Flatten Selected Hierarchy
 - [ ] Join Selected Object on the same level
 
 # Installation:
 
-<img src="images/download-addon.png" alt="Addon Download" width="400"/>
-
-1. Download the *.zip file onto your hard-drive
+1. Download the *.zip file of the latest release onto your hard-drive:
+https://github.com/AchimA/CAD-Helper/releases/latest/download/CAD-Helper.zip
 1. In Blender
     1. Got to Edit / Preferences / Add-ons
     1. Hit install and select the downloaded *.zip file
     1. Activate the addon by ticking the box
-
-The add-on can then be accessed in the 3D view right side-bar (N-menu).
+1. The add-on can then be accessed in the 3D view right side-bar (N-menu).

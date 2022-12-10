@@ -344,9 +344,8 @@ class FilterSelection(bpy.types.Operator):
         layout.label(text='Filter Selection')
 
         box = layout.box()
-        row = box.row()
-        row.label(text='Filter by Object Name', icon='GREASEPENCIL')
-        row.prop(self, 'prop_use_regex')
+        box.label(text='Filter by Object Name', icon='GREASEPENCIL')
+        box.prop(self, 'prop_use_regex')
         box.prop(self, 'prop_namefilter')
 
         layout.separator(factor=1)
