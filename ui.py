@@ -46,15 +46,23 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         box.operator('object.filter_selection', icon='FILTER')
 
         box = layout.box()
-        box.label(text='Object Removal')
+        box.label(text='Clean-Up')
         box.operator(
             'object.delete_and_reparent_children',
             icon='SNAP_PEEL_OBJECT'
             )
         box.operator(
             'object.delete_child_empties_without_children',
-            icon='CON_CHILDOF'
+            icon='OUTLINER_DATA_EMPTY'
             )
+        box.operator(
+            'object.flatten_hierarchy',
+            icon='OUTLINER'
+        )
+        box.operator(
+            'object.flatten_and_join_hierarchy',
+            icon='CON_CHILDOF'
+        )
 
         box = layout.box()
         box.label(text='Transfer Material Properties')

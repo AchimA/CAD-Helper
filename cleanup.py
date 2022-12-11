@@ -12,7 +12,7 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     deleting objects from a structured assebly.
     '''
     bl_idname = 'object.delete_and_reparent_children'
-    bl_label = 'Delete and re-parent children'
+    bl_label = 'Delete and re-parent Children'
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -51,7 +51,7 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     deletes all empties that do not have any chlidren.
     '''
     bl_idname = 'object.delete_child_empties_without_children'
-    bl_label = 'Delete child Empies with no children'
+    bl_label = 'Delete Child Empies with no Children'
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -94,12 +94,85 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class FlattenHierarchy(bpy.types.Operator):
+    '''
+    Flattens hierarch, so that all of the childrend
+    below a selected node(s) are on the same level.
+    '''
+    bl_idname = 'object.flatten_hierarchy'
+    bl_label = 'Flatten Hierarchy'
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    def execute(self, context):
+        init_selection = bpy.context.selected_objects
+
+        for root in init_selection:
+            for child in root.children_recursive:
+                location = child.matrix_world
+                child.parent = root
+                child.matrix_world = location
+
+        # restore selection as of before
+        bpy.ops.object.select_all(action='DESELECT')
+        [obj.select_set(True) for obj in init_selection]
+
+        return {'FINISHED'}
+
+
+class FlattenJoinHierarchy(bpy.types.Operator):
+    '''
+    Flattens hierarchy and join all of the child mesh objects,
+    so that all of the children below a selected object(s)
+    are on the same level.
+    '''
+    bl_idname = 'object.flatten_and_join_hierarchy'
+    bl_label = 'Flatten and Join Hierarchy'
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    def execute(self, context):
+        init_selection = bpy.context.selected_objects
+
+        for root in init_selection:
+            all_children = root.children_recursive
+            for child in all_children:
+                location = child.matrix_world
+                child.parent = root
+                child.matrix_world = location
+            shared_functions.apply_modifiers_and_join(all_children)
+        # for root in init_selection:
+        #     children = [
+        #         chld
+        #         for chld
+        #         in root.children_recursive
+        #         if chld.type == 'MESH'
+        #         ]
+        #     for child in children:
+        #         pass
+
+        # restore selection as of before
+        bpy.ops.object.select_all(action='DESELECT')
+        [obj.select_set(True) for obj in init_selection]
+
+        return {'FINISHED'}
+
+
+
 ##############################################################################
 # Add-On Handling
 ##############################################################################
 __classes__ = (
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
+    FlattenHierarchy,
+    FlattenJoinHierarchy,
 )
 
 

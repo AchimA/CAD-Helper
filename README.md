@@ -19,10 +19,6 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
 This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM)
 
 
-## Plans for implementing:
-- [ ] Flatten selected hierarchy
-- [ ] Join selected object on the same level
-
 # Installation:
 
 1. Download the *.zip file of the latest release onto your hard-drive: 
