@@ -20,12 +20,14 @@ This is sometimes required as some CAD export color, roughness & alpha to the Vi
 
 
 ## Plans for implementing:
-- [ ] Flatten Selected Hierarchy
-- [ ] Join Selected Object on the same level
+- [ ] Flatten selected hierarchy
+- [ ] Join selected object on the same level
+- [ ] Clear viewport material of selected objects
+- [ ] Remove all material slots from selected objects
 
 # Installation:
 
-1. Download the *.zip file of the latest release onto your hard-drive:
+1. Download the *.zip file of the latest release onto your hard-drive: 
 https://github.com/AchimA/CAD-Helper/releases/latest/download/CAD-Helper.zip
 1. In Blender
     1. Got to Edit / Preferences / Add-ons
