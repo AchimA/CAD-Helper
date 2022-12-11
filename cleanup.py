@@ -14,7 +14,6 @@ class DeleteAndReparentChildren(bpy.types.Operator):
     bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and re-parent children'
     bl_options = {"REGISTER", "UNDO"}
-    bl_description = __doc__
 
     @classmethod
     def poll(cls, context):
@@ -54,7 +53,6 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     bl_idname = 'object.delete_child_empties_without_children'
     bl_label = 'Delete child Empies with no children'
     bl_options = {"REGISTER", "UNDO"}
-    bl_description = __doc__
 
     @classmethod
     def poll(cls, context):

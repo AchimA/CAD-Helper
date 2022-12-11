@@ -8,6 +8,7 @@ class Transfer_VP_to_Nodes(bpy.types.Operator):
     """Transfer: Viewport Display -> Material Nodes"""
     bl_idname = "object.transfer_vp_to_nodes"
     bl_label = "Transfer: Viewport Display -> Material Nodes"
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -43,6 +44,7 @@ class Transfer_Nodes_to_VP(bpy.types.Operator):
     """Transfer: Material Nodes -> Viewport Display"""
     bl_idname = "object.transfer_nodes_to_vp"
     bl_label = "Transfer: Material Nodes -> Viewport Display"
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -80,6 +82,7 @@ class Clear_Materials(bpy.types.Operator):
     '''
     bl_idname = "object.clear_materials"
     bl_label = "Clear all Materials"
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -100,6 +103,7 @@ class Clear_Viewport_Display_Settings(bpy.types.Operator):
     '''
     bl_idname = "object.clear_vp_display"
     bl_label = "Clear Viewport Display Settings"
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
