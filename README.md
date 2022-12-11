@@ -22,8 +22,6 @@ This is sometimes required as some CAD export color, roughness & alpha to the Vi
 ## Plans for implementing:
 - [ ] Flatten selected hierarchy
 - [ ] Join selected object on the same level
-- [ ] Clear viewport material of selected objects
-- [ ] Remove all material slots from selected objects
 
 # Installation:
 
