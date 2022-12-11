@@ -1,3 +1,5 @@
+# GPL-3.0 license
+
 import bpy
 
 
@@ -58,6 +60,8 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         box.label(text='Transfer Material Properties')
         box.operator('object.transfer_vp_to_nodes', icon='TRIA_LEFT')
         box.operator('object.transfer_nodes_to_vp', icon='TRIA_RIGHT')
+        box.operator('object.clear_vp_display', icon='LOOP_BACK')
+        box.operator('object.clear_materials', icon='X')
 
 
 ##############################################################################
