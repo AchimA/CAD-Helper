@@ -1,7 +1,6 @@
 # GPL-3.0 license
 
 import bpy
-from . import shared_functions
 
 
 class SelectParentsExtend(bpy.types.Operator):
@@ -91,7 +90,14 @@ class SelectAllChildren(bpy.types.Operator):
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
 
-        shared_functions.select_hierarchy()
+        init_selection = bpy.context.selected_objects
+
+        sel = []
+        for obj in init_selection:
+            sel += obj.children_recursive
+
+        bpy.ops.object.select_all(action='DESELECT')
+        [obj.select_set(True) for obj in sel]
 
         return {'FINISHED'}
 

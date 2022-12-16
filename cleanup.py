@@ -61,36 +61,47 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     def execute(self, context):
         init_selection = bpy.context.selected_objects
 
-        # exit function if no parents / roots have been selected
+        # exit function if no objects have been selected
         if len(init_selection) == 0:
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
 
-        shared_functions.select_hierarchy()
+        # make a list of all the leaf children of type empty
+        sel = []
+        for obj in init_selection:
+            children = obj.children_recursive
+            for child in children:
+                if len(child.children) == 0 and child.type == 'EMPTY' and child not in sel:
+                    sel.append(child)
+                    # self.report({'INFO'}, 'Found {} objects for removal'.format(len(sel)))
 
-        sel = bpy.context.selected_objects
-
-        # keep only type=empty
-        sel = [n for n in sel if n.type == 'EMPTY']
-        # keep only leafs (objects without children)
-        sel = [n for n in sel if len(n.children) == 0]
+        print(sel)
 
         # iterate through list of leafes
+        # (as long as elements are in the sel list)
+        counter = 0
         while sel:
             # extract first object of the list
             obj = sel.pop(0)
             # check if obj has parent of type empy,
             # if True then add that parent to sel list
-            if obj.parent.type == 'EMPTY' and obj.parent not in init_selection:
-                sel.append(obj.parent)
+            # print(obj.parent.type, obj.parent)
+            # if obj.parent.type == 'EMPTY':
+            #     sel.append(obj.parent)
+            # remove obj form init_selection if it was in there
+            while obj in init_selection:
+                init_selection.remove(obj)
             # delete obj
             bpy.data.objects.remove(obj)
-            # continue as long as some elements are in the list
+            counter += 1
+            # continue as long as some elements are in the list...
 
         # restore selection as of before
         bpy.ops.object.select_all(action='DESELECT')
         [obj.select_set(True) for obj in init_selection]
 
+
+        self.report({'INFO'}, 'Removed {} objects'.format(counter))
         return {'FINISHED'}
 
 
@@ -147,22 +158,12 @@ class FlattenJoinHierarchy(bpy.types.Operator):
                 child.parent = root
                 child.matrix_world = location
             shared_functions.apply_modifiers_and_join(all_children)
-        # for root in init_selection:
-        #     children = [
-        #         chld
-        #         for chld
-        #         in root.children_recursive
-        #         if chld.type == 'MESH'
-        #         ]
-        #     for child in children:
-        #         pass
 
         # restore selection as of before
         bpy.ops.object.select_all(action='DESELECT')
         [obj.select_set(True) for obj in init_selection]
 
         return {'FINISHED'}
-
 
 
 ##############################################################################

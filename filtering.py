@@ -31,7 +31,8 @@ class FilterSelection(bpy.types.Operator):
         )
     prop_namefilter: bpy.props.StringProperty(
         name='Name Filter',
-        default='*'
+        default='*',
+        options={'TEXTEDIT_UPDATE'}
         )
 
     prop_min: bpy.props.FloatProperty(
