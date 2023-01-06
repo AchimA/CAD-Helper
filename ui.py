@@ -2,24 +2,23 @@
 
 import bpy
 
+##############################################################################
+# Panels
+##############################################################################
 
-# side panel:
-class CAD_HELPER_PT_Panel(bpy.types.Panel):
-    bl_idname = 'CAD_HELPER_PT_Panel'
-    bl_label = 'CAD Helper'
+class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_SEL_HELPER_PT_Panel'
+    bl_label = 'CAD Selection Helper'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
     bl_context = 'objectmode'
 
     def draw(self, context):
-
         layout = self.layout
-        print(context.region.width)
-        context.region
 
         box = layout.box()
-        box.label(text='Selection Helper')
+        box.label(text='Hierarchy Selection')
         grid = box.grid_flow(columns=2, align=True)
         grid.operator(
             'object.extend_selection_to_parents',
@@ -37,7 +36,6 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
             'object.select_children',
             icon='TRIA_DOWN'
             )
-        # box.separator()
         box.operator(
             'object.select_all_children',
             icon='OUTLINER'
@@ -45,7 +43,22 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Selection Filtering')
-        box.operator('object.filter_selection', icon='FILTER')
+        box.operator(
+            'object.filter_selection',
+            icon='FILTER'
+            )
+
+
+class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'
+    bl_label = 'CAD Clean-Up Helper'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+
+    def draw(self, context):
+        layout = self.layout
 
         box = layout.box()
         box.label(text='Clean-Up')
@@ -67,22 +80,69 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         )
 
         box = layout.box()
+        box.label(text='Origins')
+        box.operator(
+            'object.set_obj_origin',
+            icon='OBJECT_ORIGIN'
+            )
+        box = layout.box()
+        box.label(text='Empties / Assembly Nodes')
+        box.operator(
+            'object.norm_empty_size',
+            icon='EMPTY_DATA'
+            )
+        box.operator(
+            'object.center_empties_to_children',
+            icon='ANCHOR_CENTER'
+            )
+
+
+
+class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_MAT_HELPER_PT_Panel'
+    bl_label = 'CAD Material Helper'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+
+    def draw(self, context):
+        layout = self.layout
+
+        box = layout.box()
         box.label(text='Transfer Material Properties')
-        box.operator('object.transfer_vp_to_nodes', icon='TRIA_LEFT')
-        box.operator('object.transfer_nodes_to_vp', icon='TRIA_RIGHT')
+        box.operator(
+            'object.transfer_vp_to_nodes',
+            icon='TRIA_LEFT'
+            )
+        box.operator(
+            'object.transfer_nodes_to_vp',
+            icon='TRIA_RIGHT'
+            )
 
         box = layout.box()
         box.label(text='Clean-Up Materials')
-        box.operator('object.clear_vp_display', icon='LOOP_BACK')
-        box.operator('object.clear_materials', icon='X')
-        box.operator('object.cleanup_duplicate_materials', icon='MATERIAL')
+        box.operator(
+            'object.clear_vp_display',
+            icon='LOOP_BACK'
+            )
+        box.operator(
+            'object.clear_materials',
+            icon='X'
+            )
+        box.operator(
+            'object.cleanup_duplicate_materials',
+            icon='MATERIAL'
+            )
 
 
 ##############################################################################
 # Add-On Handling
 ##############################################################################
 __classes__ = (
-    CAD_HELPER_PT_Panel,
+    CAD_SEL_HELPER_PT_Panel,
+    CAD_CLEAN_HELPER_PT_Panel,
+    CAD_MAT_HELPER_PT_Panel,
 )
 
 

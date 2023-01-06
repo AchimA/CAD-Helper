@@ -18,6 +18,9 @@ In a hierarchical CAD model (with sub-assemblies and parts), select one or more 
     * Below the selected object(s); all leafes empties (empties without children) are deleted.
     * Flatten the hierarchy below any selected nodes
     * Flatten the hierarchy below any selected nodes and joins all the mesh objects. All modifiers are applied before joining.
+    * Set the object (part) origins relative to the part geometry
+    * Resize all the selected empties, without resizing all of the children
+    * Set the empty (assembly origin) position to the average of all the child objects
 * **Transfer Material Properties**
     * Transfer material properties between Principled BSDF Node and View Port Display settings.
     This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM)

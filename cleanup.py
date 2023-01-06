@@ -1,6 +1,7 @@
 # GPL-3.0 license
 
 import bpy
+import mathutils
 from . import shared_functions
 
 
@@ -167,6 +168,147 @@ class FlattenJoinHierarchy(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SetObjOrigin(bpy.types.Operator):
+    '''
+    Set object origin to bounding box center of all the selected objects.
+    '''
+    bl_idname = 'object.set_obj_origin'
+    bl_label = 'Set Object Origin to Bounding Box Center'
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    def execute(self, context):
+        init_selection = bpy.context.selected_objects
+
+        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+
+        # restore selection as of before
+        bpy.ops.object.select_all(action='DESELECT')
+        [obj.select_set(True) for obj in init_selection]
+
+        return {'FINISHED'}
+
+
+class NormEmptySize(bpy.types.Operator):
+    '''
+    Normaliaes the Empty Display Size
+    '''
+    bl_idname = 'object.norm_empty_size'
+    bl_label = 'Normalise Empty Size'
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    empty_size: bpy.props.FloatProperty(
+        name='New Empty Size',
+        default=0.1,
+        soft_min=0,
+        soft_max=1
+        )
+
+    def invoke(self, context, event):
+        init_selection = bpy.context.selected_objects
+
+        # reduce selection to empties only
+        bpy.ops.object.select_all(action='DESELECT')
+        [
+            obj.select_set(True)
+            for obj
+            in init_selection
+            if obj.type == 'EMPTY'
+            ]
+
+    #     # apply scale for the empties
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+        return self.execute(context)
+
+    def execute(self, context):
+        for obj in bpy.context.selected_objects:
+            if obj.type == 'EMPTY':
+                
+                # obj.transform_apply(location=False, rotation=False, scale=True)
+                obj.empty_display_size = self.empty_size
+
+        return {'FINISHED'}
+
+    def draw(self, context):
+
+        layout = self.layout
+        box = layout.box()
+        box.label(text='Filter by Size', icon='FIXED_SIZE')
+        box.prop(self, 'empty_size', slider=True)
+
+
+class CenterEmptiesToChildren(bpy.types.Operator):
+    '''
+    Center Empties to Children.
+    This moves the assembly origin to an average
+    position of all the parts in the assembly.
+    '''
+    bl_idname = 'object.center_empties_to_children'
+    bl_label = 'Center Empties to Children'
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    def execute(self, context):
+        init_selection = bpy.context.selected_objects
+
+        for root in init_selection:
+            if root.type == 'EMPTY' and root.children_recursive:
+                # save the location of the direct children
+                pos = {}
+                for chld in root.children:
+                    pos[chld] = chld.matrix_world
+                
+                # calculate the root average location based on all of the children
+                all_children = root.children_recursive
+                x = 0
+                y = 0
+                z = 0
+                n = 0
+                for child in all_children:
+                    if child.type != 'EMPTY':
+                        x += child.location[0]
+                        y += child.location[1]
+                        z += child.location[2]
+                        n += 1
+                        # child.parent = root
+                        # child.matrix_world = location
+                x = x/n
+                y = y/n
+                z = z/n
+                print(x, y, z)
+
+                # Create a new transformation matrix with the desired position
+                matrix = mathutils.Matrix()
+                matrix[0][3] = x  # Set the x position
+                matrix[1][3] = y  # Set the y position
+                matrix[2][3] = z  # Set the z position
+
+                # Set the object's matrix_world attribute to the new matrix
+                root.matrix_world = matrix
+
+                # reset the children's position to the previously saved location
+                for chld in root.children:
+                    chld.matrix_world = pos[chld]
+            
+
+        # restore selection as of before
+        bpy.ops.object.select_all(action='DESELECT')
+        [obj.select_set(True) for obj in init_selection]
+
+        return {'FINISHED'}
+
+
 ##############################################################################
 # Add-On Handling
 ##############################################################################
@@ -175,6 +317,9 @@ __classes__ = (
     DeleteEmpiesWithoutChildren,
     FlattenHierarchy,
     FlattenJoinHierarchy,
+    SetObjOrigin,
+    NormEmptySize,
+    CenterEmptiesToChildren,
 )
 
 
