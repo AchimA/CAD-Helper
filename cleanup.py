@@ -139,6 +139,7 @@ class FlattenJoinHierarchy(bpy.types.Operator):
     Flattens hierarchy and join all of the child mesh objects,
     so that all of the children below a selected object(s)
     are on the same level.
+    All modifiers are applied before joining.
     '''
     bl_idname = 'object.flatten_and_join_hierarchy'
     bl_label = 'Flatten and Join Hierarchy'

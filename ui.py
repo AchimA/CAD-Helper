@@ -15,6 +15,8 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
     def draw(self, context):
 
         layout = self.layout
+        print(context.region.width)
+        context.region
 
         box = layout.box()
         box.label(text='Selection Helper')
@@ -68,8 +70,12 @@ class CAD_HELPER_PT_Panel(bpy.types.Panel):
         box.label(text='Transfer Material Properties')
         box.operator('object.transfer_vp_to_nodes', icon='TRIA_LEFT')
         box.operator('object.transfer_nodes_to_vp', icon='TRIA_RIGHT')
+
+        box = layout.box()
+        box.label(text='Clean-Up Materials')
         box.operator('object.clear_vp_display', icon='LOOP_BACK')
         box.operator('object.clear_materials', icon='X')
+        box.operator('object.cleanup_duplicate_materials', icon='MATERIAL')
 
 
 ##############################################################################
