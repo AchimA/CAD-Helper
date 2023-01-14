@@ -86,7 +86,7 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
             icon='OBJECT_ORIGIN'
             )
         box = layout.box()
-        box.label(text='Empties / Assembly Nodes')
+        box.label(text='Empties')
         box.operator(
             'object.norm_empty_size',
             icon='EMPTY_DATA'
@@ -112,12 +112,12 @@ class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
         box = layout.box()
         box.label(text='Transfer Material Properties')
         box.operator(
-            'object.transfer_vp_to_nodes',
-            icon='TRIA_LEFT'
-            )
-        box.operator(
             'object.transfer_nodes_to_vp',
             icon='TRIA_RIGHT'
+            )
+        box.operator(
+            'object.transfer_vp_to_nodes',
+            icon='TRIA_LEFT'
             )
 
         box = layout.box()

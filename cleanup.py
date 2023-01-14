@@ -268,7 +268,7 @@ class CenterEmptiesToChildren(bpy.types.Operator):
                 pos = {}
                 for chld in root.children:
                     pos[chld] = chld.matrix_world
-                
+
                 # calculate the root average location based on all of the children
                 all_children = root.children_recursive
                 x = 0
@@ -277,25 +277,17 @@ class CenterEmptiesToChildren(bpy.types.Operator):
                 n = 0
                 for child in all_children:
                     if child.type != 'EMPTY':
-                        x += child.location[0]
-                        y += child.location[1]
-                        z += child.location[2]
+                        x += child.matrix_world.translation[0]
+                        y += child.matrix_world.translation[1]
+                        z += child.matrix_world.translation[2]
                         n += 1
-                        # child.parent = root
-                        # child.matrix_world = location
+                # calculate average position
                 x = x/n
                 y = y/n
                 z = z/n
-                # print(x, y, z)
-
-                # Create a new transformation matrix with the desired position
-                matrix = mathutils.Matrix()
-                matrix[0][3] = x  # Set the x position
-                matrix[1][3] = y  # Set the y position
-                matrix[2][3] = z  # Set the z position
 
                 # Set the object's matrix_world attribute to the new matrix
-                root.matrix_world = matrix
+                root.matrix_world.translation = mathutils.Vector((x,y,z))
 
                 # reset the children's position to the previously saved location
                 for chld in root.children:
