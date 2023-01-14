@@ -286,7 +286,7 @@ class CenterEmptiesToChildren(bpy.types.Operator):
                 x = x/n
                 y = y/n
                 z = z/n
-                print(x, y, z)
+                # print(x, y, z)
 
                 # Create a new transformation matrix with the desired position
                 matrix = mathutils.Matrix()

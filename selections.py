@@ -73,11 +73,11 @@ class SelectChildrenExtend(bpy.types.Operator):
 
 class SelectAllChildren(bpy.types.Operator):
     '''
-    Recursivley expands selection to include
+    Recursively expands selection to include
     all the children of an initial selection.
     '''
     bl_idname = 'object.select_all_children'
-    bl_label = 'Select All Children Recusivley'
+    bl_label = 'Select All Children Recusively'
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -98,6 +98,9 @@ class SelectAllChildren(bpy.types.Operator):
 
         bpy.ops.object.select_all(action='DESELECT')
         [obj.select_set(True) for obj in sel]
+
+        # make first element of initial selection active
+        bpy.context.view_layer.objects.active = sel[0]
 
         return {'FINISHED'}
 
