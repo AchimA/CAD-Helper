@@ -6,7 +6,7 @@ import importlib
 bl_info = {
     "name": "CAD-Helper",
     "author": "A. R. Ammon",
-    "version": (0, 2, 2),
+    "version": (0, 2, 3),
     "blender": (3, 6, 0),
     "description": '''Adds additional object selection and deletion
     functionality for hierarchically structured assemblies.
