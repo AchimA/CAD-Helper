@@ -1,10 +1,33 @@
 # GPL-3.0 license
 
 import bpy
+from . import bl_info
 
 ##############################################################################
 # Panels
 ##############################################################################
+
+# addon_info = bpy.context.preferences.addons['CAD-Helper'].bl_info
+
+class CAD_INFO_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_INFO_PT_Panel'
+    bl_label = 'CAD Helper Info'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.label(text='Add-On Version: {}.{}.{}'.format(bl_info['version'][0], bl_info['version'][1], bl_info['version'][2]))
+        op = self.layout.operator(
+            'wm.url_open',
+            text='GitHub Page',
+            icon='URL'
+            )
+        op.url = 'github.com/AchimA/CAD-Helper'
+
 
 class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_SEL_HELPER_PT_Panel'
@@ -47,7 +70,6 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
             'object.filter_selection',
             icon='FILTER'
             )
-
 
 class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'
@@ -140,6 +162,7 @@ class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
 # Add-On Handling
 ##############################################################################
 __classes__ = (
+    CAD_INFO_PT_Panel,
     CAD_SEL_HELPER_PT_Panel,
     CAD_CLEAN_HELPER_PT_Panel,
     CAD_MAT_HELPER_PT_Panel,
