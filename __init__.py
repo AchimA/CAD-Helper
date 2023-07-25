@@ -6,12 +6,10 @@ import importlib
 bl_info = {
     "name": "CAD-Helper",
     "author": "A. R. Ammon",
-    "version": (0, 2, 3),
+    "version": (0, 2, 4),
     "blender": (3, 6, 0),
     "description": '''Adds additional object selection and deletion
-    functionality for hierarchically structured assemblies.
-    
-    GitHub Page: https://github.com/AchimA/CAD-Helper''',
+    functionality for hierarchically structured assemblies.''',
     "warning": "",
     "doc_url": "",
     'support': 'COMMUNITY',
