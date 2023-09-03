@@ -44,3 +44,4 @@ def apply_modifiers_and_join(objects_list):
     bpy.ops.object.join()
 
     return 0
+

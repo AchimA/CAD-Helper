@@ -15,6 +15,11 @@ class FilterSelection(bpy.types.Operator):
     bl_label = 'Filter Selection '
     bl_options = {"REGISTER", "UNDO"}
 
+    
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
     # update function, which makes sure min is never
     # lager than max and max is never smaller than min
     def update_min_func(self, context):
@@ -81,10 +86,6 @@ class FilterSelection(bpy.types.Operator):
 
     def execute(self, context):
         self.init_selection = bpy.context.selected_objects
-        # exit function if no objects have been selected
-        if len(self.init_selection) == 0:
-            self.report({'INFO'}, 'No objects were selected. Nothing done...')
-            return {'CANCELLED'}
 
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -175,13 +176,11 @@ def register():
     # register classes
     for c in __classes__:
         bpy.utils.register_class(c)
-
-    print('registered ')
+        print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
     for c in __classes__:
         bpy.utils.unregister_class(c)
-
-    print('unregistered ')
+        print(f'unregistered {c}')

@@ -124,7 +124,8 @@ class Clear_Viewport_Display_Settings(bpy.types.Operator):
 
 
 class CleanupMaterialsOperator(bpy.types.Operator):
-    """Deletes duplicated materials and relinks material slots"""
+    """Deletes duplicated materials and relinks material slots\
+    for ALL the materials in the scene."""
     bl_idname = "object.cleanup_duplicate_materials"
     bl_label = "Cleanup Duplicate Materials"
     bl_options = {'REGISTER', 'UNDO'}
@@ -203,13 +204,11 @@ def register():
     # register classes
     for c in __classes__:
         bpy.utils.register_class(c)
-
-    print('registered ')
+        print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
     for c in __classes__:
         bpy.utils.unregister_class(c)
-
-    print('unregistered ')
+        print(f'unregistered {c}')
