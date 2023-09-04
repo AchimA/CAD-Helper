@@ -159,69 +159,6 @@ class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
             )
 
 
-class CAD_OBJ_DATA_LINKER_PT_Panel(bpy.types.Panel):
-    bl_idname = 'LINK_OBJ_DATA_PT_PANEL'
-    bl_label = 'CAD Object Data Helper'
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'CAD Helper'
-    bl_context = 'objectmode'
-
-    def draw(self, context):
-        layout = self.layout
-
-        box = layout.box()
-        box.label(text='Link Object Data (EXPERIMENTAL)')
-
-        box.operator_context = "INVOKE_DEFAULT"
-        box.operator(
-            'object.link_obj_data',
-            icon='LINKED'
-            )
-
-# class LINKABLE_OBJECTS_PT_Panel(bpy.types.Panel):
-#     bl_idname = 'Linkable_Objects_PT_Panel'
-#     bl_label = 'CAD Object Data Helper'
-#     bl_space_type = 'VIEW_3D'
-#     bl_region_type = 'UI'
-#     bl_category = 'CAD Object Linker'
-#     bl_context = 'objectmode'
-
-#     global linkable_objects
-
-#     def draw(self, context):
-#         layout = self.layout
-#         # layout.use_property_split = True
-#         layout.label(text='Linkable collections:')
-#         layout.operator('object.refresh_linkable_collection')
-#         # layout.operator('object.update_linkable_collection', text='Refresh', icon='FILE_REFRESH')
-#         for key, data in linkable_objects.items():
-#             # print(key)
-#             # print(data)
-#             # row = col.row()
-#             # row.label(text=key)
-            
-#             box = layout.box()
-            
-#             row_outer = box.row()
-            
-#             box = row_outer.box()
-#             box.label(text='Thumbnail')
-#             # icon_id = render_object_thumbnail(obj)
-#             # row_outer.template_icon(icon_value=icon_id, scale=3.0)
-
-#             box = row_outer.box()
-
-#             box.label(text=f'[{len(data)}x] {key}', icon='OBJECT_DATA')
-            
-#             row = box.row()
-            
-#             row.operator(SelectCollections.bl_idname, text='Select', icon='RESTRICT_SELECT_OFF').collection_name = key
-#             # op.custom_prop = key
-#             # row.label(text='Select Objects', icon='RESTRICT_SELECT_OFF')
-#             row.label(text='Link Object Data', icon='LINKED')
-   
-
 ##############################################################################
 # Add-On Handling
 ##############################################################################
@@ -230,8 +167,6 @@ __classes__ = (
     CAD_SEL_HELPER_PT_Panel,
     CAD_CLEAN_HELPER_PT_Panel,
     CAD_MAT_HELPER_PT_Panel,
-    CAD_OBJ_DATA_LINKER_PT_Panel,
-    # LINKABLE_OBJECTS_PT_Panel,
 )
 
 
