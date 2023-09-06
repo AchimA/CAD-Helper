@@ -17,8 +17,10 @@ class LinkableCollectionItem(bpy.types.PropertyGroup):
 
 def ListIndexCallback(self, value):
     # bpy.ops.generate_markers.change_marker() #other class function
-    
-    bpy.ops.object.list_select_collection()
+    try:
+        bpy.ops.object.list_select_collection()
+    except:
+        pass
 
 class LIST_OT_SelectCollection(bpy.types.Operator):
     bl_idname = "object.list_select_collection"
@@ -73,17 +75,17 @@ class LIST_OT_LinkALLCollections(bpy.types.Operator):
         return context.scene.linkable_collections
 
     def execute(self, context):
-        self.report({'INFO'}, "Liniking all collections'")
-        
         linkable_collections = context.scene.linkable_collections
-        index = 0
+        context.scene.lin_col_idx = 0
+        num_coll = len(linkable_collections)
 
         while linkable_collections:
             bpy.ops.object.link_collections()
             
-            context.scene.linkable_collections.remove(index)
-            context.scene.lin_col_idx = min(max(0, index-1), len(linkable_collections)-1)
-
+            context.scene.linkable_collections.remove(context.scene.lin_col_idx)
+            context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
+        
+        self.report({'INFO'}, f'Liniked {num_coll} collections')
         return {'FINISHED'}
 
 class LinkableCollection_UL_List(bpy.types.UIList):
@@ -159,7 +161,6 @@ class RefreshLinkableCollection(bpy.types.Operator):
 
         unique_names = []
         for ob in objects:
-            print(ob.name)
             match = p.match(ob.name)
             match = match.group()
             if match not in unique_names:
@@ -169,10 +170,9 @@ class RefreshLinkableCollection(bpy.types.Operator):
         for u_name in unique_names:
             u_objects = []
             for ob in objects:
-                # add object to list if another object with the same data is not already in the list
+                # add object to list if if it has the same name
                 if u_name == p.match(ob.name).group():
-                    if ob.data not in [u.data for u in u_objects]:
-                        u_objects.append(ob)
+                    u_objects.append(ob)
             if len(u_objects) > 1:
                 item = bpy.context.scene.linkable_collections.add()
                 item.name = u_name
@@ -194,7 +194,7 @@ class LinkCollections(bpy.types.Operator):
         linkable_collections = context.scene.linkable_collections
         index = context.scene.lin_col_idx
         
-        self.report({'INFO'}, f"Liniking: '{linkable_collections[index].name}'")
+        self.report({'INFO'}, f"Liniking... '{linkable_collections[index].name}'")
         
         objects = [bpy.data.objects[o.name] for o in list(linkable_collections[index].objects)]
 
