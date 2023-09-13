@@ -5,7 +5,6 @@ import re
 
 from bpy.types import Context
 from . import shared_functions
-import tempfile
 import os
 
 

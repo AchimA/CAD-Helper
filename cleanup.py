@@ -276,11 +276,10 @@ class CenterEmptiesToChildren(bpy.types.Operator):
                 z = 0
                 n = 0
                 for child in all_children:
-                    if child.type != 'EMPTY':
-                        x += child.matrix_world.translation[0]
-                        y += child.matrix_world.translation[1]
-                        z += child.matrix_world.translation[2]
-                        n += 1
+                    x += child.matrix_world.translation[0]
+                    y += child.matrix_world.translation[1]
+                    z += child.matrix_world.translation[2]
+                    n += 1
                 # calculate average position
                 x = x/n
                 y = y/n

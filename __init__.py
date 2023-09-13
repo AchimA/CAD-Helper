@@ -6,7 +6,7 @@ import importlib
 bl_info = {
     "name": "CAD-Helper",
     "author": "A. R. Ammon",
-    "version": (0, 3, 1),
+    "version": (0, 3, 2),
     "blender": (3, 6, 0),
     "description": '''Adds additional object selection and deletion
     functionality for hierarchically structured assemblies.''',
@@ -16,14 +16,16 @@ bl_info = {
     "category": "Object",
 }
 
+
 modulesNames = [
     'ui',
     'selections',
     'cleanup',
     'filtering',
     'materials',
-    'LinkObjData'
-    ]
+    'LinkObjData',
+    # ObjectPreview,
+        ]
 
 
 modulesFullNames = {}
