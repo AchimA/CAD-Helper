@@ -81,6 +81,8 @@ class FilterSelection(bpy.types.Operator):
             'FONT',
             'VOLUME'
             }
+        self.prop_min = 0
+        self.prop_max = 100
 
         return self.execute(context)
 
@@ -118,15 +120,15 @@ class FilterSelection(bpy.types.Operator):
         [
             obj.select_set(True)
             for
-            obj
+                obj
             in
-            self.init_selection
+                self.init_selection
             if
-            self.prop_min <= obj.dimensions.length/biggest_size*100 <= self.prop_max
+                self.prop_min <= obj.dimensions.length/biggest_size*100 <= self.prop_max
             and
-            obj.type in self.prop_types
+                obj.type in self.prop_types
             and
-            re.match(pattern, obj.name)
+                re.match(pattern, obj.name)
             ]
 
         self.report(
