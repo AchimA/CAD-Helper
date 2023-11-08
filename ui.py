@@ -1,7 +1,10 @@
 # GPL-3.0 license
 
 import bpy
+import requests
+
 from . import bl_info
+current_version = 'v{}.{}.{}'.format(bl_info['version'][0], bl_info['version'][1], bl_info['version'][2])
 
 global linkable_objects
 linkable_objects = {}
@@ -10,11 +13,24 @@ linkable_objects = {}
 # Panels
 ##############################################################################
 
-# addon_info = bpy.context.preferences.addons['CAD-Helper'].bl_info
+def check_addon_version():
+    # Fetch the latest version from GitHub
+    try:
+        response = requests.get('https://api.github.com/repos/AchimA/CAD-Helper/releases/latest')
+        github_data = response.json()
+        latest_version = github_data['tag_name']
+    except:
+        latest_version = None
+        print('WARNING: failed to fetch GitHub version')
+        print(github_data['message'])
+    return latest_version
+
+
+latest_version = check_addon_version()
 
 class CAD_INFO_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_INFO_PT_Panel'
-    bl_label = 'CAD Helper Info'
+    bl_label = f'CAD Helper ({current_version})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
@@ -22,14 +38,18 @@ class CAD_INFO_PT_Panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.label(text='Add-On Version: {}.{}.{}'.format(bl_info['version'][0], bl_info['version'][1], bl_info['version'][2]))
-        op = self.layout.operator(
+        
+        box = layout.box()
+        if current_version != latest_version and latest_version:
+            box.label(text=f'Update available! {current_version} → {latest_version}')
+            box.alert = True
+        op = box.operator(
             'wm.url_open',
             text='GitHub Page',
             icon='URL'
             )
         op.url = 'github.com/AchimA/CAD-Helper'
+
 
 
 class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
@@ -174,11 +194,11 @@ def register():
     # register classes
     for c in __classes__:
         bpy.utils.register_class(c)
-        print(f'registered {c}')
+        # print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
     for c in __classes__:
         bpy.utils.unregister_class(c)
-        print(f'unregistered {c}')
+        # print(f'unregistered {c}')

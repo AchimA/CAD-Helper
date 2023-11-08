@@ -178,11 +178,11 @@ def register():
     # register classes
     for c in __classes__:
         bpy.utils.register_class(c)
-        print(f'registered {c}')
+        # print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
     for c in __classes__:
         bpy.utils.unregister_class(c)
-        print(f'unregistered {c}')
+        # print(f'unregistered {c}')

@@ -87,19 +87,19 @@ class LIST_OT_LinkALLCollections(bpy.types.Operator):
         self.report({'INFO'}, f'Liniked {num_coll} collections')
         return {'FINISHED'}
 
-class LinkableCollection_UL_List(bpy.types.UIList):
-    """Demo UIList."""
+class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
+    """
+    LINKABLE_COLLECTION_UL_LIST
+    """
 
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
 
-        # We could write some code to decide which icon to use here...
+        # Set Icon
         custom_icon = 'COLLECTION_COLOR_02'
 
-        # Make sure your code supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(text=f'{item.N_objects:4d}x   {item.name}', icon = custom_icon)
-            
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -108,7 +108,7 @@ class LinkableCollection_UL_List(bpy.types.UIList):
 class UIListPanelLinkableCollection(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
     bl_label = "CAD Object Data Helper"
-    bl_idname = "panel_linkable_collection"
+    bl_idname = "PANEL_PT_linkable_collection"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Obj.Dat. Helper'
@@ -127,7 +127,7 @@ class UIListPanelLinkableCollection(bpy.types.Panel):
             icon='FILE_REFRESH'
             )
         
-        layout.template_list('LinkableCollection_UL_List', 'a list', scene, 'linkable_collections', scene, 'lin_col_idx')
+        layout.template_list('LINKABLE_COLLECTION_UL_LIST', 'a list', scene, 'linkable_collections', scene, 'lin_col_idx')
         
         row = layout.row()
         
@@ -212,7 +212,7 @@ class LinkCollections(bpy.types.Operator):
 __classes__ = (
     RefreshLinkableCollection,
     LinkableCollectionItem,
-    LinkableCollection_UL_List,
+    LINKABLE_COLLECTION_UL_LIST,
     UIListPanelLinkableCollection,
     LinkCollections,
     LIST_OT_LinkALLCollections,
@@ -224,7 +224,7 @@ def register():
     # register classes
     for c in __classes__:
         bpy.utils.register_class(c)
-        print(f'registered {c}')
+        # print(f'registered {c}')
     
     bpy.types.Scene.linkable_collections = bpy.props.CollectionProperty(type=LinkableCollectionItem)
     # bpy.types.Scene.lin_col_idx = bpy.props.IntProperty(name='Index')
@@ -235,6 +235,6 @@ def unregister():
     # unregister classes
     for c in __classes__:
         bpy.utils.unregister_class(c)
-        print(f'unregistered {c}')
+        # print(f'unregistered {c}')
     del bpy.types.Scene.linkable_collections
     del bpy.types.Scene.lin_col_idx
