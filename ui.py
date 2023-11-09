@@ -93,6 +93,10 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
             'object.filter_selection',
             icon='FILTER'
             )
+        box.operator(
+            'object.filter_by_vertex_count',
+            icon='VERTEXSEL'
+            )
 
 class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'

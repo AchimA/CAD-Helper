@@ -22,13 +22,13 @@ class FilterSelection(bpy.types.Operator):
 
     # update function, which makes sure min is never
     # lager than max and max is never smaller than min
-    def update_min_func(self, context):
-        if self.prop_max < self.prop_min:
-            self.prop_max = self.prop_min
+    def update_BB_min_func(self, context):
+        if self.prop_BB_max < self.prop_BB_min:
+            self.prop_BB_max = self.prop_BB_min
 
-    def update_max_func(self, context):
-        if self.prop_min > self.prop_max:
-            self.prop_min = self.prop_max
+    def update_BB_max_func(self, context):
+        if self.prop_BB_min > self.prop_BB_max:
+            self.prop_BB_min = self.prop_BB_max
 
     prop_use_regex: bpy.props.BoolProperty(
         name='Use Regex',
@@ -40,16 +40,16 @@ class FilterSelection(bpy.types.Operator):
         options={'TEXTEDIT_UPDATE'}
         )
 
-    prop_min: bpy.props.FloatProperty(
+    prop_BB_min: bpy.props.FloatProperty(
         name='Min Size (%)',
-        update=update_min_func,
+        update=update_BB_min_func,
         default=0,
         soft_min=0,
         soft_max=100
         )
-    prop_max: bpy.props.FloatProperty(
+    prop_BB_max: bpy.props.FloatProperty(
         name='Max Size (%)',
-        update=update_max_func,
+        update=update_BB_max_func,
         default=100,
         soft_min=0,
         soft_max=100
@@ -81,8 +81,8 @@ class FilterSelection(bpy.types.Operator):
             'FONT',
             'VOLUME'
             }
-        self.prop_min = 0
-        self.prop_max = 100
+        self.prop_BB_min = 0
+        self.prop_BB_max = 100
 
         return self.execute(context)
 
@@ -110,7 +110,7 @@ class FilterSelection(bpy.types.Operator):
             pattern = re.compile(p_string)
 
         # do the filtering of the selection here...
-        biggest_size = max(
+        self.biggest_BB_size = max(
             [
                 obj.dimensions.length
                 for obj
@@ -124,7 +124,7 @@ class FilterSelection(bpy.types.Operator):
             in
                 self.init_selection
             if
-                self.prop_min <= obj.dimensions.length/biggest_size*100 <= self.prop_max
+                self.prop_BB_min <= obj.dimensions.length/self.biggest_BB_size*100 <= self.prop_BB_max
             and
                 obj.type in self.prop_types
             and
@@ -145,7 +145,6 @@ class FilterSelection(bpy.types.Operator):
 
         layout = self.layout
         layout.use_property_split = True
-        layout.label(text='Filter Selection')
 
         box = layout.box()
         box.label(text='Filter by Object Name', icon='GREASEPENCIL')
@@ -161,16 +160,129 @@ class FilterSelection(bpy.types.Operator):
         layout.separator(factor=1)
 
         box = layout.box()
-        box.label(text='Filter by Size', icon='FIXED_SIZE')
-        box.prop(self, 'prop_min', slider=True)
-        box.prop(self, 'prop_max', slider=True)
+        box.label(text='Filter by Bounding Box Size', icon='FIXED_SIZE')
+        
+        row = box.row()
+        row.label(text=f'min: {self.prop_BB_min/100*self.biggest_BB_size:.2f}')
+        row.separator()
+        row.label(text=f'max: {self.prop_BB_max/100*self.biggest_BB_size:.2f}')
 
+        box.prop(self, 'prop_BB_min', slider=True)
+        box.prop(self, 'prop_BB_max', slider=True)
+
+
+class FilterbyVertCount(bpy.types.Operator):
+    '''
+    Filter all the selected objects by vertex count.
+    Works only on mesh type objects!
+    '''
+    bl_idname = 'object.filter_by_vertex_count'
+    bl_label = 'Filter Selection by Vertex Count'
+    bl_options = {"REGISTER", "UNDO"}
+
+    
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
+    # update function, which makes sure min is never
+    # lager than max and max is never smaller than min
+    
+    def update_VT_min_func(self, context):
+        if self.prop_VT_max < self.prop_VT_min:
+            self.prop_VT_max = self.prop_VT_min
+
+    def update_VT_max_func(self, context):
+        if self.prop_VT_min > self.prop_VT_max:
+            self.prop_VT_min = self.prop_VT_max
+
+    prop_VT_min: bpy.props.FloatProperty(
+        name='Min Count (%)',
+        update=update_VT_min_func,
+        default=0,
+        soft_min=0,
+        soft_max=100
+        )
+    prop_VT_max: bpy.props.FloatProperty(
+        name='Max Count (%)',
+        update=update_VT_max_func,
+        default=100,
+        soft_min=0,
+        soft_max=100
+        )
+
+    def invoke(self, context, event):
+        # set default object types:
+        self.prop_types = {
+            'MESH'
+            # 'CURVE',
+            # 'SURFACE',
+            # 'META',
+            # 'FONT',
+            # 'VOLUME'
+            }
+        self.prop_VT_min = 0
+        self.prop_VT_max = 100
+
+        return self.execute(context)
+
+    def execute(self, context):
+        self.init_selection = [o for o in bpy.context.selected_objects if o.type in self.prop_types]
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+        self.biggest_VT_size = max(
+            [
+                len(obj.data.vertices)
+                for obj
+                in self.init_selection
+                ]
+            )
+        [
+            obj.select_set(True)
+            for
+                obj
+            in
+                self.init_selection
+            if
+                self.prop_VT_min <= len(obj.data.vertices)/self.biggest_VT_size*100 <= self.prop_VT_max
+            ]
+
+        self.report(
+            {'INFO'},
+            '{0} of {1} are currently selected'.format(
+                len(bpy.context.selected_objects),
+                len(self.init_selection)
+                )
+            )
+
+        return {'FINISHED'}
+
+    def draw(self, context):
+
+        layout = self.layout
+        layout.use_property_split = True
+        # layout.label(text='Filter Selection')
+
+        layout.separator(factor=1)
+
+        box = layout.box()
+        box.label(text='Filter by Vertex Count', icon='VERTEXSEL')
+        
+        row = box.row()
+        row.label(text=f'min: {int(self.prop_VT_min/100*self.biggest_VT_size)}')
+        row.separator()
+        row.label(text=f'max: {int(self.prop_VT_max/100*self.biggest_VT_size)}')
+
+        box.prop(self, 'prop_VT_min', slider=True)
+        box.prop(self, 'prop_VT_max', slider=True)
 
 ##############################################################################
 # Add-On Handling
 ##############################################################################
 __classes__ = (
     FilterSelection,
+    FilterbyVertCount,
 )
 
 
