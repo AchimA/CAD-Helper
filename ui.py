@@ -16,13 +16,12 @@ linkable_objects = {}
 def check_addon_version():
     # Fetch the latest version from GitHub
     try:
-        response = requests.get('https://api.github.com/repos/AchimA/CAD-Helper/releases/latest')
+        response = requests.get('https://api.github.com/repos/AchimA/CAD-Helper/releases/latest', timeout=4)
         github_data = response.json()
         latest_version = github_data['tag_name']
     except:
         latest_version = None
         print('WARNING: failed to fetch GitHub version')
-        print(github_data['message'])
     return latest_version
 
 
@@ -39,14 +38,17 @@ class CAD_INFO_PT_Panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         
+
         box = layout.box()
         if current_version != latest_version and latest_version:
-            box.label(text=f'Update available! {current_version} → {latest_version}')
             box.alert = True
+            button_text = f'Update {current_version} → {latest_version}'
+        else:
+            button_text = 'GitHub Page'
         op = box.operator(
             'wm.url_open',
-            text='GitHub Page',
-            icon='URL'
+            text = button_text,
+            icon = 'URL'
             )
         op.url = 'github.com/AchimA/CAD-Helper'
 
