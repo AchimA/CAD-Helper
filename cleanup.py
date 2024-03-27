@@ -76,7 +76,7 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
                     sel.append(child)
                     # self.report({'INFO'}, 'Found {} objects for removal'.format(len(sel)))
 
-        print(sel)
+        # print(sel)
 
         # iterate through list of leafes
         # (as long as elements are in the sel list)

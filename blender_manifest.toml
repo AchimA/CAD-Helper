@@ -1,0 +1,40 @@
+schema_version = "1.0.0"
+
+# Example of manifest file for a Blender extension
+# Change the values according to your extension
+id = "cad_helper"
+version = "1.0.0"
+name = "CAD-Helper"
+tagline = "Blender Addon for imported CAD assemblies"
+maintainer = "AchimA <https://github.com/AchimA>"
+# Supported types: "add-on", "theme"
+type = "add-on"
+
+# Optional: add-ons can list which resources they will require:
+# * "files" (for access of any filesystem operations)
+# * "network" (for internet access)
+# * "camera" (to capture photos and videos)
+# * "microphone" (to capture audio)
+permissions = ["network"]
+
+# Optional link to documentation, support, source files, etc
+website = "https://github.com/AchimA/CAD-Helper"
+
+# Optional list defined by Blender and server, see:
+# https://docs.blender.org/manual/en/dev/extensions/tags.html
+tags = ["Object"]
+
+blender_version_min = "3.6.0"
+# Optional: maximum supported Blender version
+# blender_version_max = "5.1.0"
+
+# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+# https://docs.blender.org/manual/en/dev/extensions/licenses.html
+license = [
+  "SPDX: GPL-3.0-only",
+]
+# Optional: required by some licenses.
+#copyright = [
+#  "2002-2024 Developer Name",
+#  "1998 Company Name",
+#]

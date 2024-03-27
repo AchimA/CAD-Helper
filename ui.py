@@ -42,7 +42,7 @@ class CAD_INFO_PT_Panel(bpy.types.Panel):
         box = layout.box()
         if current_version != latest_version and latest_version:
             box.alert = True
-            button_text = f'Update {current_version} → {latest_version}'
+            button_text = f'Update available → {latest_version} ←'
         else:
             button_text = 'GitHub Page'
         op = box.operator(
