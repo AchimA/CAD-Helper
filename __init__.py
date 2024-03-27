@@ -5,7 +5,7 @@ import importlib
 
 bl_info = {
     "name": "CAD-Helper",
-    "author": "A. R. Ammon",
+    "author": "A. Ammon",
     "version": (0, 4, 2),
     "blender": (3, 6, 0),
     "description": '''Adds additional object selection and deletion
