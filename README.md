@@ -1,11 +1,8 @@
+> **NOTE:** This "add-on" has now been ported to a modern Blender "extension". To install / update it, please use **Edit > Preferences > Get Extensions** and search for **CAD-Helper**.
 
 
 
 # <img src="images/ICON.png" alt="Icon" width="86"/> Blender Extension: CAD Helper
-
-> [!NOTE] Note\
-> This "add-on" has now been ported to a modern Blender "extension".\
-> To install / update it, please use **Edit > Preferences > Get Extensions** and search for **CAD-Helper**.
 
 Blender Extension for imported CAD assemblies.\
 <img src="images/ui-panel.png" alt="User Interface" width="300"/>
@@ -37,15 +34,15 @@ Implemented operators are:
 * **Empties**
     * Normalize the size of the selected empties.
     * Place the empties at the center (median) of the location of its children.
-* **Transfer Material Properties [:exclamation: Experimental]**
+* **Transfer Material Properties [❗Experimental]**
     * Transfer material properties between Principled BSDF Node and View Port Display settings.
     This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM).
-* **Clean-Up Materials  [:exclamation: Experimental]**
+* **Clean-Up Materials  [❗Experimental]**
     * Clear viewport colors. Resets all objects to standard gray, when viewed in solid shading
     * Clear all materials from selected objects
     * Remove duplicated materials.
     This compares base color, alpha, roughness and metallic in the BSDF node and replaces all materials with the same values.\
     :information_source: This operator works on the entire scene, not only selected objects.
-* **Link / Object-Data Helper  [:exclamation: Experimental]**
-    * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.
-    :exclamation: Since only the name is checked, it might have unwanted behaviour. Please be sure to check the outcome! :exclamation:
+* **Link / Object-Data Helper  [❗Experimental]**
+    * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.\
+    ❗→ Since only the name is checked, it might have unwanted behaviour. Please be sure to check the outcome!
