@@ -11,22 +11,22 @@ Blender Extension for imported CAD assemblies.\
 <img src="images/ui-panel.png" alt="User Interface" width="300"/>
 
 ## Functions:
-Ths extension aims to simplyfy the cleaning & restructuring of imported CAD assemblies. This is especially helpful for largre assemblies with hundreds of parts and many nested sub-assemblies.
+This extension aims to simplify the cleaning & restructuring of imported CAD assemblies. This is especially helpful for larger assemblies with hundreds of parts and many nested sub-assemblies.
 
-Mosts operators work on selections (either one or multiple objects within the assembly structure).
+Most operators work on selections (either one or multiple objects within the assembly structure).
 
 Implemented operators are: 
 * **Selection Helper**
     * Select parent or child objects (with or without extending the selection)
-    * Recursivley select all child elements of the current selection
+    * Recursively select all child elements of the current selection
 * **Selection Filtering**
     * Filter the selection by their name (simple string match & RegEx)^.
     * Filter the selection by object type (EMPTY, MESH, CURVE, etc.)
-    * Filter the selection by bounding box size.Lets you specifiy a min and max size in % relative to the selected parts.
+    * Filter the selection by bounding box size.Lets you specify a min and max size in % relative to the selected parts.
     * Filter the selection by vertex count.
 * **Clean-Up**
-    * Delete one or multiple objects in the hirarchy. All the children of the selected objects are automatically reconnected to their 'grand-parents' before they are deleted.
-    * Delete all leafes empties (empties without children) below the selected objects.
+    * Delete one or multiple objects in the hierarchy. All the children of the selected objects are automatically reconnected to their 'grand-parents' before they are deleted.
+    * Delete all leaf empties (empties without children) below the selected objects.
     * Flattens the hierarchy below any selected nodes.
     * Flattens the hierarchy below any selected nodes and joins all the mesh objects. All modifiers are applied before joining.
     * Set the object (part) origins relative to the part geometry
@@ -41,11 +41,11 @@ Implemented operators are:
     * Transfer material properties between Principled BSDF Node and View Port Display settings.
     This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM).
 * **Clean-Up Materials  [:exclamation: Experimental]**
-    * Clear viewport colors. Resets all objects to standard gray, when viewd in solid shading
+    * Clear viewport colors. Resets all objects to standard gray, when viewed in solid shading
     * Clear all materials from selected objects
     * Remove duplicated materials.
     This compares base color, alpha, roughness and metallic in the BSDF node and replaces all materials with the same values.\
     :information_source: This operator works on the entire scene, not only selected objects.
 * **Link / Object-Data Helper  [:exclamation: Experimental]**
     * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.
-    :exclamation: Since only the name is checked, it might have unwanted behalviour. Please be shure to check the outcome! :exclamation:
+    :exclamation: Since only the name is checked, it might have unwanted behaviour. Please be sure to check the outcome! :exclamation:

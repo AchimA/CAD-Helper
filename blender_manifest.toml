@@ -13,7 +13,7 @@ type = "add-on"
 
 # # Optional: link to documentation, support, source files, etc
 website = "https://github.com/AchimA/CAD-Helper"
-# website = "https://extensions.blender.org/add-ons/add-std-paper-size/"
+# website = "https://extensions.blender.org/approval-queue/cad-helper/"
 
 # # Optional: tag list defined by Blender and server, see:
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
