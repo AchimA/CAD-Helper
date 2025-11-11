@@ -5,7 +5,6 @@ import re
 
 from bpy.types import Context
 from . import shared_functions
-import os
 
 
 # Assign linkable collection.
@@ -205,11 +204,11 @@ class LinkCollections(bpy.types.Operator):
         
         return {'FINISHED'}
 
-
+    
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
+classes = (
     RefreshLinkableCollection,
     LinkableCollectionItem,
     LINKABLE_COLLECTION_UL_LIST,
@@ -222,19 +221,19 @@ __classes__ = (
 
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
-        # print(f'registered {c}')
-    
+        print(f'registered {c}')
+
     bpy.types.Scene.linkable_collections = bpy.props.CollectionProperty(type=LinkableCollectionItem)
-    # bpy.types.Scene.lin_col_idx = bpy.props.IntProperty(name='Index')
     bpy.types.Scene.lin_col_idx = bpy.props.IntProperty(name='Index', update=ListIndexCallback)
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
-        # print(f'unregistered {c}')
+        print(f'unregistered {c}')
+
     del bpy.types.Scene.linkable_collections
     del bpy.types.Scene.lin_col_idx

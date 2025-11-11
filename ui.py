@@ -3,56 +3,12 @@
 import bpy
 import requests
 
-from . import bl_info
-current_version = 'v{}.{}.{}'.format(bl_info['version'][0], bl_info['version'][1], bl_info['version'][2])
-
 global linkable_objects
 linkable_objects = {}
 
 ##############################################################################
 # Panels
 ##############################################################################
-
-def check_addon_version():
-    # Fetch the latest version from GitHub
-    try:
-        response = requests.get('https://api.github.com/repos/AchimA/CAD-Helper/releases/latest', timeout=4)
-        github_data = response.json()
-        latest_version = github_data['tag_name']
-    except:
-        latest_version = None
-        print('WARNING: failed to fetch GitHub version')
-    return latest_version
-
-
-latest_version = check_addon_version()
-
-class CAD_INFO_PT_Panel(bpy.types.Panel):
-    bl_idname = 'CAD_INFO_PT_Panel'
-    bl_label = f'CAD Helper ({current_version})'
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'CAD Helper'
-    bl_context = 'objectmode'
-
-    def draw(self, context):
-        layout = self.layout
-        
-
-        box = layout.box()
-        if current_version != latest_version and latest_version:
-            box.alert = True
-            button_text = f'Update available → {latest_version} ←'
-        else:
-            button_text = 'GitHub Page'
-        op = box.operator(
-            'wm.url_open',
-            text = button_text,
-            icon = 'URL'
-            )
-        op.url = 'github.com/AchimA/CAD-Helper'
-
-
 
 class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_SEL_HELPER_PT_Panel'
@@ -188,23 +144,21 @@ class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
-    CAD_INFO_PT_Panel,
+classes = (
     CAD_SEL_HELPER_PT_Panel,
     CAD_CLEAN_HELPER_PT_Panel,
     CAD_MAT_HELPER_PT_Panel,
 )
 
-
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
-        # print(f'registered {c}')
+        print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
-        # print(f'unregistered {c}')
+        print(f'unregistered {c}')

@@ -3,7 +3,6 @@
 import bpy
 import re
 
-
 class FilterSelection(bpy.types.Operator):
     '''
     Filter all the selected objects by:
@@ -277,24 +276,24 @@ class FilterbyVertCount(bpy.types.Operator):
         box.prop(self, 'prop_VT_min', slider=True)
         box.prop(self, 'prop_VT_max', slider=True)
 
+
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
+classes = (
     FilterSelection,
     FilterbyVertCount,
 )
 
-
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
-        # print(f'registered {c}')
+        print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
-        # print(f'unregistered {c}')
+        print(f'unregistered {c}')

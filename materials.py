@@ -1,5 +1,4 @@
 # GPL-3.0 license
-
 import bpy
 from . import shared_functions
 
@@ -187,11 +186,10 @@ class CleanupMaterialsOperator(bpy.types.Operator):
 
         return {'FINISHED'}
 
-
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
+classes = (
     Transfer_VP_to_Nodes,
     Transfer_Nodes_to_VP,
     Clear_Materials,
@@ -199,16 +197,15 @@ __classes__ = (
     CleanupMaterialsOperator,
 )
 
-
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
         print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
         print(f'unregistered {c}')

@@ -1,9 +1,7 @@
 # GPL-3.0 license
-
 import bpy
 import mathutils
 from . import shared_functions
-
 
 class DeleteAndReparentChildren(bpy.types.Operator):
     '''
@@ -303,7 +301,7 @@ class CenterEmptiesToChildren(bpy.types.Operator):
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
+classes = (
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
     FlattenHierarchy,
@@ -313,16 +311,15 @@ __classes__ = (
     CenterEmptiesToChildren,
 )
 
-
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
-        # print(f'registered {c}')
+        print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
-        # print(f'unregistered {c}')
+        print(f'unregistered {c}')

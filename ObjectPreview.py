@@ -56,21 +56,23 @@ def render_isometric_image(object, position):
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
-    ObjectRenderInfo,,
+classes = (
+    ObjectRenderInfo,
 )
 
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
-        # print(f'registered {c}')
+        print(f'registered {c}')
+
     bpy.types.Property.render_info = bpy.props.CollectionProperty(type=ObjectRenderInfo)
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
-        # print(f'unregistered {c}')
+        print(f'unregistered {c}')
+        
     del bpy.types.Property.render_info

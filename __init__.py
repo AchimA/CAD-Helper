@@ -1,23 +1,9 @@
 # GPL-3.0 license
-
-import sys
+import bpy
 import importlib
 
-bl_info = {
-    "name": "CAD-Helper",
-    "author": "A. Ammon",
-    "version": (0, 4, 2),
-    "blender": (3, 6, 0),
-    "description": '''Adds additional object selection and deletion
-    functionality for hierarchically structured assemblies.''',
-    "warning": "",
-    "doc_url": "",
-    'support': 'COMMUNITY',
-    "category": "Object",
-}
 
-
-modulesNames = [
+module_names = (
     'ui',
     'selections',
     'cleanup',
@@ -25,46 +11,39 @@ modulesNames = [
     'materials',
     'LinkObjData',
     # ObjectPreview,
-        ]
-
-
-modulesFullNames = {}
-for currentModuleName in modulesNames:
-    modulesFullNames[currentModuleName] = (
-        '{}.{}'.format(__name__, currentModuleName)
         )
 
-for currentModuleFullName in modulesFullNames.values():
-    if currentModuleFullName in sys.modules:
-        importlib.reload(
-            sys.modules[currentModuleFullName]
-            )
-    else:
-        globals()[currentModuleFullName] = importlib.import_module(
-            currentModuleFullName
-            )
-        setattr(
-            globals()[currentModuleFullName],
-            'modulesNames',
-            modulesFullNames
-            )
-
+# This list will be filled with the actual module objects at registration
+__modules = []
 
 def register():
-    for currentModuleName in modulesFullNames.values():
-        if currentModuleName in sys.modules:
-            if hasattr(sys.modules[currentModuleName], 'register'):
-                sys.modules[currentModuleName].register()
-
-
+    # Clear the list on a re-register (e.g., F8)
+    __modules.clear()
+    
+    for name in module_names:
+        try:
+            # Dynamically import the module.
+            # The f".{name}" and __package__ are crucial for relative imports
+            module = importlib.import_module(f".{name}", __package__)
+            module.register()
+            __modules.append(module)
+            print(f"Registered module: {name}")
+        except ImportError:
+            print(f"Error: Could not import module {name}")
+        except Exception as e:
+            print(f"Error registering module {name}: {e}")
+    
 def unregister():
-    for currentModuleName in modulesFullNames.values():
-        if currentModuleName in sys.modules:
-            if hasattr(sys.modules[currentModuleName], 'unregister'):
-                sys.modules[currentModuleName].unregister()
-
+    # Unregister in the reverse order to avoid dependency issues
+    for module in reversed(__modules):
+        try:
+            module.unregister()
+            print(f"Unregistered module: {module.__name__}")
+        except Exception as e:
+            print(f"Error unregistering module {module.__name__}: {e}")
+            
+    # Clear the list
+    __modules.clear()
 
 if __name__ == "__main__":
     register()
-
-# https://b3d.interplanety.org/en/creating-multifile-add-on-for-blender/

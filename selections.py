@@ -1,7 +1,5 @@
 # GPL-3.0 license
-
 import bpy
-
 
 class SelectParentsExtend(bpy.types.Operator):
     '''
@@ -108,7 +106,7 @@ class SelectAllChildren(bpy.types.Operator):
 ##############################################################################
 # Add-On Handling
 ##############################################################################
-__classes__ = (
+classes = (
     SelectAllChildren,
     SelectParentsExtend,
     SelectParent,
@@ -116,16 +114,15 @@ __classes__ = (
     SelectChildrenExtend,
 )
 
-
 def register():
     # register classes
-    for c in __classes__:
+    for c in classes:
         bpy.utils.register_class(c)
         print(f'registered {c}')
 
 
 def unregister():
     # unregister classes
-    for c in __classes__:
+    for c in reversed(classes):
         bpy.utils.unregister_class(c)
         print(f'unregistered {c}')
