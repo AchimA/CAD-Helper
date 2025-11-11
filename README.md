@@ -7,9 +7,8 @@
 > This "add-on" has now been ported to a modern Blender "extension".\
 > To install / update it, please use **Edit > Preferences > Get Extensions** and search for **CAD-Helper**.
 
-Blender Extension for imported CAD assemblies.
+Blender Extension for imported CAD assemblies.\
 <img src="images/ui-panel.png" alt="User Interface" width="300"/>
-
 
 ## Functions:
 Ths extension aims to simplyfy the cleaning & restructuring of imported CAD assemblies. This is especially helpful for largre assemblies with hundreds of parts and many nested sub-assemblies.
