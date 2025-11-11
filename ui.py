@@ -105,11 +105,12 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
 
 class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_MAT_HELPER_PT_Panel'
-    bl_label = 'CAD Material Helper'
+    bl_label = '[Exp.] CAD Material Helper'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
     bl_context = 'objectmode'
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout

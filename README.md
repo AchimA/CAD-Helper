@@ -1,6 +1,9 @@
-# Blender Extension: CAD Helper
 
-> [!NOTE] TEST\
+
+
+# <img src="images/ICON.png" alt="Icon" width="86"/> Blender Extension: CAD Helper
+
+> [!NOTE] Note\
 > This "add-on" has now been ported to a modern Blender "extension".\
 > To install / update it, please use **Edit > Preferences > Get Extensions** and search for **CAD-Helper**.
 
@@ -47,13 +50,3 @@ Implemented operators are:
 * **Link / Object-Data Helper  [:exclamation: Experimental]**
     * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.
     :exclamation: Since only the name is checked, it might have unwanted behalviour. Please be shure to check the outcome! :exclamation:
-
-# Installation:
-
-1. Download the *.zip file of the latest release onto your hard-drive: 
-https://github.com/AchimA/CAD-Helper/releases/latest/download/CAD-Helper.zip
-1. In Blender
-    1. Got to Edit / Preferences / Add-ons
-    1. Hit install and select the downloaded *.zip file
-    1. Activate the addon by ticking the box
-1. The add-on can then be accessed in the 3D view right side-bar (N-menu).

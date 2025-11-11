@@ -51,16 +51,20 @@ class LIST_OT_LinkCollection(bpy.types.Operator):
     def poll(cls, context):
         return context.scene.linkable_collections
     
+    def invoke(self, context, event):
+        # use the event parameter so invoke_confirm shows
+        return context.window_manager.invoke_confirm(
+            self,
+            event,
+            title='Proceed and link selected collection?',
+            message='Warning: This will overwrite mesh data of target objects.',
+            confirm_text='Link',
+            icon='WARNING',
+            )
+    
     def execute(self, context):
-        linkable_collections = context.scene.linkable_collections
-        index = context.scene.lin_col_idx
-
-        name = linkable_collections[index].name
-        bpy.ops.object.link_collections()
-        
-        context.scene.linkable_collections.remove(index)
-        context.scene.lin_col_idx = min(max(0, index-1), len(linkable_collections)-1)
-
+        # invoke the link operator so the confirm dialog appears
+        bpy.ops.object.link_collections('INVOKE_DEFAULT')
         return{'FINISHED'}
 
 
@@ -71,19 +75,30 @@ class LIST_OT_LinkALLCollections(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.scene.linkable_collections
-
+    
+    def invoke(self, context, event):
+        # use the event parameter so invoke_confirm shows
+        return context.window_manager.invoke_confirm(
+            self,
+            event,
+            title='Proceed and link selected collection?',
+            message='Warning: This will overwrite mesh data of target objects.',
+            confirm_text='Link',
+            icon='WARNING',
+            )
+    
     def execute(self, context):
         linkable_collections = context.scene.linkable_collections
         context.scene.lin_col_idx = 0
         num_coll = len(linkable_collections)
 
+        # run the link operator in EXEC mode (no confirm) for batch processing
         while linkable_collections:
             bpy.ops.object.link_collections()
-            
-            context.scene.linkable_collections.remove(context.scene.lin_col_idx)
+            # the link operator now removes the current collection itself
             context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
         
-        self.report({'INFO'}, f'Liniked {num_coll} collections')
+        self.report({'INFO'}, f'Linked {num_coll} collections')
         return {'FINISHED'}
 
 class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
@@ -106,12 +121,14 @@ class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
 
 class UIListPanelLinkableCollection(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
-    bl_label = "CAD Object Data Helper"
+    bl_label = "[Exp.] CAD Object Data Helper"
     bl_idname = "PANEL_PT_linkable_collection"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'CAD Obj.Dat. Helper'
+    bl_category = 'CAD Helper'
     bl_context = 'objectmode'
+    bl_options = {'DEFAULT_CLOSED'}
+
 
     def draw(self, context):
         layout = self.layout
@@ -187,14 +204,6 @@ class LinkCollections(bpy.types.Operator):
     bl_idname = "object.link_collections"
     bl_label = "Link Collections"
 
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="Warning: This will overwrite mesh data of target objects.")
-        layout.label(text="Proceed and link selected collection?")
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_confirm(self, event)
-
     def execute(self, context):
         linkable_collections = context.scene.linkable_collections
         index = context.scene.lin_col_idx
@@ -208,8 +217,11 @@ class LinkCollections(bpy.types.Operator):
         for obj in objects:
             obj.data = first_object.data
 
-        return {'FINISHED'}
+        # remove the linked collection now that linking is complete
+        context.scene.linkable_collections.remove(index)
+        context.scene.lin_col_idx = min(max(0, index-1), len(context.scene.linkable_collections)-1)
 
+        return {'FINISHED'}
     
 ##############################################################################
 # Add-On Handling
