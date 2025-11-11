@@ -187,21 +187,27 @@ class LinkCollections(bpy.types.Operator):
     bl_idname = "object.link_collections"
     bl_label = "Link Collections"
 
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Warning: This will overwrite mesh data of target objects.")
+        layout.label(text="Proceed and link selected collection?")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
 
     def execute(self, context):
         linkable_collections = context.scene.linkable_collections
         index = context.scene.lin_col_idx
-        
-        self.report({'INFO'}, f"Liniking... '{linkable_collections[index].name}'")
-        
+
+        self.report({'INFO'}, f"Linking... '{linkable_collections[index].name}'")
+
         objects = [bpy.data.objects[o.name] for o in list(linkable_collections[index].objects)]
 
         first_object = objects.pop(0)
-        
+
         for obj in objects:
-            # print(f'{first_object.data} -> {obj.data}')
             obj.data = first_object.data
-        
+
         return {'FINISHED'}
 
     
