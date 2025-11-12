@@ -1,5 +1,4 @@
 # GPL-3.0 license
-
 import bpy
 import re
 
@@ -13,7 +12,6 @@ class FilterSelection(bpy.types.Operator):
     bl_idname = 'object.filter_selection'
     bl_label = 'Filter Selection '
     bl_options = {"REGISTER", "UNDO"}
-
     
     @classmethod
     def poll(cls, context):
@@ -82,13 +80,17 @@ class FilterSelection(bpy.types.Operator):
             }
         self.prop_BB_min = 0
         self.prop_BB_max = 100
+        self.prop_namefilter = '*'
+        self.prop_use_regex = False
 
         return self.execute(context)
 
     def execute(self, context):
-        self.init_selection = bpy.context.selected_objects
+        init_selection = list(context.selected_objects)  # snapshot selection
 
-        bpy.ops.object.select_all(action='DESELECT')
+        # deselect everything in this view layer (avoid bpy.ops)
+        for o in context.view_layer.objects:
+            o.select_set(False)
 
         # prepair name filtering regex:
         if self.prop_use_regex:
@@ -109,35 +111,22 @@ class FilterSelection(bpy.types.Operator):
             pattern = re.compile(p_string)
 
         # do the filtering of the selection here...
-        self.biggest_BB_size = max(
-            [
-                obj.dimensions.length
-                for obj
-                in self.init_selection
-                ]
-            )
-        [
-            obj.select_set(True)
-            for
-                obj
-            in
-                self.init_selection
-            if
-                self.prop_BB_min <= obj.dimensions.length/self.biggest_BB_size*100 <= self.prop_BB_max
-            and
-                obj.type in self.prop_types
-            and
-                re.match(pattern, obj.name)
-            ]
+        if not init_selection:
+            self.report({'INFO'}, 'No selection')
+            return {'CANCELLED'}
 
-        self.report(
-            {'INFO'},
-            '{0} of {1} are currently selected'.format(
-                len(bpy.context.selected_objects),
-                len(self.init_selection)
-                )
-            )
+        self.biggest_BB_size = max([obj.dimensions.length for obj in init_selection])
 
+        selected_count = 0
+        for obj in init_selection:
+            match_bb = (self.prop_BB_min <= obj.dimensions.length / self.biggest_BB_size * 100 <= self.prop_BB_max)
+            match_type = (obj.type in self.prop_types)
+            match_name = bool(re.match(pattern, obj.name))
+            if match_bb and match_type and match_name:
+                obj.select_set(True)
+                selected_count += 1
+
+        self.report({'INFO'}, f'{selected_count} of {len(init_selection)} are currently selected')
         return {'FINISHED'}
 
     def draw(self, context):
@@ -212,49 +201,32 @@ class FilterbyVertCount(bpy.types.Operator):
 
     def invoke(self, context, event):
         # set default object types:
-        self.prop_types = {
-            'MESH'
-            # 'CURVE',
-            # 'SURFACE',
-            # 'META',
-            # 'FONT',
-            # 'VOLUME'
-            }
         self.prop_VT_min = 0
         self.prop_VT_max = 100
 
         return self.execute(context)
 
     def execute(self, context):
-        self.init_selection = [o for o in bpy.context.selected_objects if o.type in self.prop_types]
+        init_selection = [o for o in context.selected_objects if o.type == 'MESH']
 
-        bpy.ops.object.select_all(action='DESELECT')
+        # deselect everything in this view layer (avoid bpy.ops)
+        for o in context.view_layer.objects:
+            o.select_set(False)
 
-        self.biggest_VT_size = max(
-            [
-                len(obj.data.vertices)
-                for obj
-                in self.init_selection
-                ]
-            )
-        [
-            obj.select_set(True)
-            for
-                obj
-            in
-                self.init_selection
-            if
-                self.prop_VT_min <= len(obj.data.vertices)/self.biggest_VT_size*100 <= self.prop_VT_max
-            ]
+        if not init_selection:
+            self.report({'INFO'}, 'No mesh objects in selection')
+            return {'CANCELLED'}
 
-        self.report(
-            {'INFO'},
-            '{0} of {1} are currently selected'.format(
-                len(bpy.context.selected_objects),
-                len(self.init_selection)
-                )
-            )
+        self.biggest_VT_size = max([len(obj.data.vertices) for obj in init_selection])
 
+        selected_count = 0
+        for obj in init_selection:
+            pct = len(obj.data.vertices) / self.biggest_VT_size * 100
+            if self.prop_VT_min <= pct <= self.prop_VT_max:
+                obj.select_set(True)
+                selected_count += 1
+
+        self.report({'INFO'}, f'{selected_count} of {len(init_selection)} are currently selected')
         return {'FINISHED'}
 
     def draw(self, context):

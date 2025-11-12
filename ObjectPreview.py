@@ -27,7 +27,7 @@ def render_isometric_image(object, position):
   bpy.ops.wm.create_empty(type="WORLD")
 
   # Add the object to the scene
-  bpy.context.scene.objects.link(object)
+  context.scene.objects.link(object)
 
   # Add an orthographic camera to the scene
   camera = bpy.data.cameras.new("TempCamera")

@@ -1,7 +1,6 @@
 # GPL-3.0 license
 
 import bpy
-import requests
 
 global linkable_objects
 linkable_objects = {}
@@ -24,27 +23,40 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
         box = layout.box()
         box.label(text='Hierarchy Selection')
         grid = box.grid_flow(columns=2, align=True)
-        grid.operator(
-            'object.extend_selection_to_parents',
+        # Selections
+        op = grid.operator(
+            'object.select_hierarchy',
+            text='Extend Selection to Parents',
             icon='TRIA_UP_BAR'
             )
-        grid.operator(
-            'object.extend_selection_to_children',
+        op.direction='PARENT'
+        op.extend=True
+        op = grid.operator(
+            'object.select_hierarchy',
+            text='Extend Selection to Chilren',
             icon='TRIA_DOWN_BAR'
             )
-        grid.operator(
-            'object.select_parent',
+        op.direction='CHILD'
+        op.extend=True
+        op = grid.operator(
+            'object.select_hierarchy',
+            text='Select Parent',
             icon='TRIA_UP'
             )
-        grid.operator(
-            'object.select_children',
+        op.direction='PARENT'
+        op.extend=False
+        op = grid.operator(
+            'object.select_hierarchy',
+            text='Select Children',
             icon='TRIA_DOWN'
             )
+        op.direction='CHILD'
+        op.extend=False
         box.operator(
             'object.select_all_children',
             icon='OUTLINER'
             )
-
+        # Filtering
         box = layout.box()
         box.label(text='Selection Filtering')
         box.operator(
@@ -67,6 +79,7 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
+        # Clean-Up
         box = layout.box()
         box.label(text='Clean-Up')
         box.operator(
@@ -86,12 +99,7 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
             icon='CON_CHILDOF'
         )
 
-        box = layout.box()
-        box.label(text='Origins')
-        box.operator(
-            'object.set_obj_origin',
-            icon='OBJECT_ORIGIN'
-            )
+        # Empties
         box = layout.box()
         box.label(text='Empties')
         box.operator(
@@ -131,10 +139,6 @@ class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
         box.operator(
             'object.clear_vp_display',
             icon='LOOP_BACK'
-            )
-        box.operator(
-            'object.clear_materials',
-            icon='X'
             )
         box.operator(
             'object.cleanup_duplicate_materials',

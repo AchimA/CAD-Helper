@@ -1,104 +1,47 @@
 # GPL-3.0 license
 import bpy
 
-class SelectParentsExtend(bpy.types.Operator):
-    '''
-    Extends the selection to the parent of all the selected objects
-    '''
-    bl_idname = 'object.extend_selection_to_parents'
-    bl_label = 'Extend Sel. to Parents'
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    def execute(self, context):
-        bpy.ops.object.select_hierarchy(direction='PARENT', extend=True)
-        return {'FINISHED'}
-
-
-class SelectParent(bpy.types.Operator):
-    '''
-    Selects the immidiate parent of all the selected objects
-    '''
-    bl_idname = 'object.select_parent'
-    bl_label = 'Select Parent'
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    def execute(self, context):
-        bpy.ops.object.select_hierarchy(direction='PARENT', extend=False)
-        return {'FINISHED'}
-
-
-class SelectChildren(bpy.types.Operator):
-    '''
-    Selects the immidiate child of all the selected objects
-    '''
-    bl_idname = 'object.select_children'
-    bl_label = 'Select Children'
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    def execute(self, context):
-        bpy.ops.object.select_hierarchy(direction='CHILD', extend=False)
-        return {'FINISHED'}
-
-
-class SelectChildrenExtend(bpy.types.Operator):
-    '''
-    Extends the selection to the child of all the selected objects
-    '''
-    bl_idname = 'object.extend_selection_to_children'
-    bl_label = 'Extend Sel. to Children'
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    def execute(self, context):
-        bpy.ops.object.select_hierarchy(direction='CHILD', extend=True)
-        return {'FINISHED'}
-
-
 class SelectAllChildren(bpy.types.Operator):
-    '''
-    Recursively expands selection to include
-    all the children of an initial selection.
-    '''
-    bl_idname = 'object.select_all_children'
-    bl_label = 'Select All Children Recusively'
+    """Select all children recursively of the current selection"""
+    bl_idname = "object.select_all_children"
+    bl_label = "Select All Children Recursively"
     bl_options = {"REGISTER", "UNDO"}
+
+    extend: bpy.props.BoolProperty(
+        name="Extend",
+        description="Don't deselect existing selection",
+        default=False
+    )
 
     @classmethod
     def poll(cls, context):
-        return context.selected_objects
+        return bool(context.selected_objects)
 
     def execute(self, context):
-        # exit function if no parents / roots have been selected
-        if len(bpy.context.selected_objects) == 0:
-            self.report({'INFO'}, 'No objects were selected. Nothing done...')
+        roots = list(context.selected_objects)
+        if not roots:
+            self.report({'INFO'}, "No selection")
             return {'CANCELLED'}
 
-        init_selection = bpy.context.selected_objects
+        # collect children (use set to avoid duplicates)
+        sel_children = set()
+        for r in roots:
+            sel_children.update(r.children_recursive)
 
-        sel = []
-        for obj in init_selection:
-            sel += obj.children_recursive
+        if not sel_children:
+            self.report({'INFO'}, "No children found")
+            return {'CANCELLED'}
 
-        bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in sel]
+        # if not extending, deselect current selection first
+        if not self.extend:
+            for o in list(context.selected_objects):
+                o.select_set(False)
 
-        # make first element of initial selection active
-        bpy.context.view_layer.objects.active = sel[0]
+        # select all collected children and set one active
+        for i, o in enumerate(sel_children):
+            o.select_set(True)
+            if i == 0:
+                context.view_layer.objects.active = o
 
         return {'FINISHED'}
 
@@ -108,10 +51,6 @@ class SelectAllChildren(bpy.types.Operator):
 ##############################################################################
 classes = (
     SelectAllChildren,
-    SelectParentsExtend,
-    SelectParent,
-    SelectChildren,
-    SelectChildrenExtend,
 )
 
 def register():

@@ -2,7 +2,6 @@
 import bpy
 from . import shared_functions
 
-
 class Transfer_VP_to_Nodes(bpy.types.Operator):
     """Transfer: Viewport Display -> Material Nodes"""
     bl_idname = "object.transfer_vp_to_nodes"
@@ -38,7 +37,6 @@ class Transfer_VP_to_Nodes(bpy.types.Operator):
 
         return {'FINISHED'}
 
-
 class Transfer_Nodes_to_VP(bpy.types.Operator):
     """Transfer: Material Nodes -> Viewport Display"""
     bl_idname = "object.transfer_nodes_to_vp"
@@ -71,30 +69,6 @@ class Transfer_Nodes_to_VP(bpy.types.Operator):
             {'INFO'},
             'Processing Matterial ({} OK, {} errors)'.format(ok, err)
             )
-
-        return {'FINISHED'}
-
-
-class Clear_Materials(bpy.types.Operator):
-    '''
-    Removes all material slots form the selected objects.
-    '''
-    bl_idname = "object.clear_materials"
-    bl_label = "Clear all Materials"
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    def execute(self, context):
-        sel = bpy.context.selected_objects
-
-        for obj in sel:
-            try:
-                obj.data.materials.clear()
-            except:
-                continue
 
         return {'FINISHED'}
 
@@ -192,7 +166,6 @@ class CleanupMaterialsOperator(bpy.types.Operator):
 classes = (
     Transfer_VP_to_Nodes,
     Transfer_Nodes_to_VP,
-    Clear_Materials,
     Clear_Viewport_Display_Settings,
     CleanupMaterialsOperator,
 )

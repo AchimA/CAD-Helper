@@ -3,9 +3,7 @@
 import bpy
 import re
 
-from bpy.types import Context
 from . import shared_functions
-
 
 # Assign linkable collection.
 class LinkableCollectionItem(bpy.types.PropertyGroup):
@@ -36,10 +34,10 @@ class LIST_OT_SelectCollection(bpy.types.Operator):
         objects = [bpy.data.objects[o.name] for o in list(linkable_collections[index].objects)]
 
         bpy.ops.object.select_all(action='DESELECT')
-        # bpy.context.view_layer.objects.active = None
+        # context.view_layer.objects.active = None
         for obj in objects:
             obj.select_set(True)
-            bpy.context.view_layer.objects.active = obj
+            context.view_layer.objects.active = obj
 
         return{'FINISHED'}
     
@@ -129,13 +127,11 @@ class UIListPanelLinkableCollection(bpy.types.Panel):
     bl_context = 'objectmode'
     bl_options = {'DEFAULT_CLOSED'}
 
-
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         obj = context.object
 
-        
         row = layout.row()
         row.operator(
             'object.refresh_linkable_collection',
@@ -158,7 +154,6 @@ class UIListPanelLinkableCollection(bpy.types.Panel):
             icon='LINKED'
             )
 
-
 class RefreshLinkableCollection(bpy.types.Operator):
     '''
     Refresh the colletion of linkable objects
@@ -168,7 +163,7 @@ class RefreshLinkableCollection(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
     
     def execute(self, context):
-        objects = bpy.context.selected_objects
+        objects = context.selected_objects
         prop_types = ['MESH','CURVE','SURFACE','META','FONT','VOLUME']
         objects = [ob for ob in objects if ob.type in prop_types]
 
@@ -181,7 +176,7 @@ class RefreshLinkableCollection(bpy.types.Operator):
             if match not in unique_names:
                 unique_names.append(match)
         
-        bpy.context.scene.linkable_collections.clear()
+        context.scene.linkable_collections.clear()
         for u_name in unique_names:
             u_objects = []
             for ob in objects:
@@ -189,7 +184,7 @@ class RefreshLinkableCollection(bpy.types.Operator):
                 if u_name == p.match(ob.name).group():
                     u_objects.append(ob)
             if len(u_objects) > 1:
-                item = bpy.context.scene.linkable_collections.add()
+                item = context.scene.linkable_collections.add()
                 item.name = u_name
                 for obj in u_objects:
                     ob = item.objects.add()

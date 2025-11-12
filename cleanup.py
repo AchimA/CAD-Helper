@@ -20,17 +20,16 @@ class DeleteAndReparentChildren(bpy.types.Operator):
 
     def execute(self, context):
         # exit function if no parents / roots have been selected
-        if len(bpy.context.selected_objects) == 0:
+        if len(context.selected_objects) == 0:
             self.report({'INFO'}, 'No objects were selected. Nothing done...')
             return {'CANCELLED'}
 
-        for object in bpy.context.selected_objects:
+        for object in context.selected_objects:
             self.delete_and_reconnect(object)
 
         return {'FINISHED'}
 
     def delete_and_reconnect(self, object):
-
         parent = object.parent
 
         if parent is not None:
@@ -50,7 +49,7 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
     deletes all empties that do not have any chlidren.
     '''
     bl_idname = 'object.delete_child_empties_without_children'
-    bl_label = 'Delete Child Empies with no Children'
+    bl_label = 'Delete Child Empties Without Children'
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -58,49 +57,40 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
         return context.selected_objects
 
     def execute(self, context):
-        init_selection = bpy.context.selected_objects
+        init_selection = list(context.selected_objects)  # snapshot
+        # preserve current active object
+        _active = context.view_layer.objects.active
 
-        # exit function if no objects have been selected
-        if len(init_selection) == 0:
-            self.report({'INFO'}, 'No objects were selected. Nothing done...')
+        if not init_selection:
+            self.report({'INFO'}, 'No objects selected')
             return {'CANCELLED'}
 
-        # make a list of all the leaf children of type empty
+        # collect leaf empty children
         sel = []
         for obj in init_selection:
-            children = obj.children_recursive
-            for child in children:
-                if len(child.children) == 0 and child.type == 'EMPTY' and child not in sel:
+            for child in obj.children_recursive:
+                if child.type == 'EMPTY' and len(child.children) == 0 and child not in sel:
                     sel.append(child)
-                    # self.report({'INFO'}, 'Found {} objects for removal'.format(len(sel)))
 
-        # print(sel)
-
-        # iterate through list of leafes
-        # (as long as elements are in the sel list)
         counter = 0
         while sel:
-            # extract first object of the list
             obj = sel.pop(0)
-            # check if obj has parent of type empy,
-            # if True then add that parent to sel list
-            # print(obj.parent.type, obj.parent)
-            # if obj.parent.type == 'EMPTY':
-            #     sel.append(obj.parent)
-            # remove obj form init_selection if it was in there
-            while obj in init_selection:
+            if obj in init_selection:
                 init_selection.remove(obj)
-            # delete obj
+            # remove object from data
             bpy.data.objects.remove(obj)
             counter += 1
-            # continue as long as some elements are in the list...
 
-        # restore selection as of before
-        bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in init_selection]
+        # restore selection (avoid bpy.ops)
+        for o in context.view_layer.objects:
+            o.select_set(False)
+        for obj in init_selection:
+            obj.select_set(True)
 
+        # restore active object
+        context.view_layer.objects.active = _active
 
-        self.report({'INFO'}, 'Removed {} objects'.format(counter))
+        self.report({'INFO'}, f'Removed {counter} objects')
         return {'FINISHED'}
 
 
@@ -118,17 +108,13 @@ class FlattenHierarchy(bpy.types.Operator):
         return context.selected_objects
 
     def execute(self, context):
-        init_selection = bpy.context.selected_objects
+        init_selection = context.selected_objects
 
         for root in init_selection:
             for child in root.children_recursive:
                 location = child.matrix_world
                 child.parent = root
                 child.matrix_world = location
-
-        # restore selection as of before
-        bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in init_selection]
 
         return {'FINISHED'}
 
@@ -149,7 +135,7 @@ class FlattenJoinHierarchy(bpy.types.Operator):
         return context.selected_objects
 
     def execute(self, context):
-        init_selection = bpy.context.selected_objects
+        init_selection = context.selected_objects
 
         for root in init_selection:
             all_children = root.children_recursive
@@ -157,35 +143,7 @@ class FlattenJoinHierarchy(bpy.types.Operator):
                 location = child.matrix_world
                 child.parent = root
                 child.matrix_world = location
-            shared_functions.apply_modifiers_and_join(all_children)
-
-        # restore selection as of before
-        bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in init_selection]
-
-        return {'FINISHED'}
-
-
-class SetObjOrigin(bpy.types.Operator):
-    '''
-    Set object origin to bounding box center of all the selected objects.
-    '''
-    bl_idname = 'object.set_obj_origin'
-    bl_label = 'Set Object Origin to Bounding Box Center'
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    def execute(self, context):
-        init_selection = bpy.context.selected_objects
-
-        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
-
-        # restore selection as of before
-        bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in init_selection]
+            shared_functions.apply_modifiers_and_join(context, all_children)
 
         return {'FINISHED'}
 
@@ -210,7 +168,7 @@ class NormEmptySize(bpy.types.Operator):
         )
 
     def invoke(self, context, event):
-        init_selection = bpy.context.selected_objects
+        init_selection = context.selected_objects
 
         # reduce selection to empties only
         bpy.ops.object.select_all(action='DESELECT')
@@ -227,7 +185,7 @@ class NormEmptySize(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        for obj in bpy.context.selected_objects:
+        for obj in context.selected_objects:
             if obj.type == 'EMPTY':
                 
                 # obj.transform_apply(location=False, rotation=False, scale=True)
@@ -236,7 +194,6 @@ class NormEmptySize(bpy.types.Operator):
         return {'FINISHED'}
 
     def draw(self, context):
-
         layout = self.layout
         box = layout.box()
         box.label(text='Filter by Size', icon='FIXED_SIZE')
@@ -258,7 +215,7 @@ class CenterEmptiesToChildren(bpy.types.Operator):
         return context.selected_objects
 
     def execute(self, context):
-        init_selection = bpy.context.selected_objects
+        init_selection = context.selected_objects
 
         for root in init_selection:
             if root.type == 'EMPTY' and root.children_recursive:
@@ -289,11 +246,6 @@ class CenterEmptiesToChildren(bpy.types.Operator):
                 # reset the children's position to the previously saved location
                 for chld in root.children:
                     chld.matrix_world = pos[chld]
-            
-
-        # restore selection as of before
-        bpy.ops.object.select_all(action='DESELECT')
-        [obj.select_set(True) for obj in init_selection]
 
         return {'FINISHED'}
 
@@ -306,7 +258,6 @@ classes = (
     DeleteEmpiesWithoutChildren,
     FlattenHierarchy,
     FlattenJoinHierarchy,
-    SetObjOrigin,
     NormEmptySize,
     CenterEmptiesToChildren,
 )

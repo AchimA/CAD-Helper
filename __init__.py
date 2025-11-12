@@ -8,8 +8,8 @@ module_names = (
     'selections',
     'cleanup',
     'filtering',
-    'materials',
     'LinkObjData',
+    'materials',
     # ObjectPreview,
         )
 
