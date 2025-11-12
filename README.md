@@ -1,4 +1,4 @@
-> #f03c15 **NOTE:** This "add-on" has now been ported to a modern Blender "extension". To install / update it, please use **Edit > Preferences > Get Extensions** and search for **CAD-Helper**.\
+> **NOTE:** This "add-on" has now been ported to a modern Blender "extension". To install / update it, please use **Edit > Preferences > Get Extensions** and search for **CAD-Helper**.\
 > https://extensions.blender.org/approval-queue/cad-helper/
 
 
