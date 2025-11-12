@@ -6,7 +6,7 @@
 # <img src="images/ICON.png" alt="Icon" width="86"/> Blender Extension: CAD Helper
 
 Blender Extension for imported CAD assemblies.\
-<img src="images\2025-11-11_CAD-Helper.png" alt="User Interface" width="300"/>
+<img src="images\2025-11-11_CAD-Helper.png" alt="User Interface" width="600"/>
 
 ## Functions:
 This extension aims to simplify the cleaning & restructuring of imported CAD assemblies. This is especially helpful for larger assemblies with hundreds of parts and many nested sub-assemblies.
