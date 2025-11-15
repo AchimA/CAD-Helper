@@ -4,7 +4,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "cad_helper"
-version = "0.5.1"
+version = "0.5.2"
 name = "CAD-Helper"
 tagline = "Blender Extension to manage imported CAD assemblies"
 maintainer = "Achim A."
@@ -35,9 +35,9 @@ license = [
 #   "1998 Company Name",
 # ]
 
-# # Optional: list of supported platforms. If omitted, the extension will be available in all operating systems.
-# platforms = ["windows-x64", "macos-arm64", "linux-x64"]
-# # Other supported platforms: "windows-arm64", "macos-x64"
+# Optional: list of supported platforms. If omitted, the extension will be available in all operating systems.
+platforms = ["windows-x64", "macos-arm64", "linux-x64"]
+# Other supported platforms: "windows-arm64", "macos-x64"
 
 # # Optional: bundle 3rd party Python modules.
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/python_wheels.html
