@@ -64,10 +64,20 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
             icon='VERTEXSEL'
             )
 
-        # Sync Outliner section
-        box = layout.box()
-        box.label(text='Options')
-        box.prop(context.scene, 'cad_sync_outliner')
+        # Moved options to collapsible child panel below
+
+class CAD_SEL_HELPER_PT_Options(bpy.types.Panel):
+    bl_idname = 'CAD_SEL_HELPER_PT_Options'
+    bl_label = 'Options'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_parent_id = 'CAD_SEL_HELPER_PT_Panel'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(context.scene, 'cad_sync_outliner')
 
 ##############################################################################
 # Operators
@@ -123,6 +133,7 @@ class SelectAllChildren(bpy.types.Operator):
 ##############################################################################
 classes = (
     CAD_SEL_HELPER_PT_Panel,
+    CAD_SEL_HELPER_PT_Options,
     SelectAllChildren,
 )
 
