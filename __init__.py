@@ -4,7 +4,6 @@ import importlib
 
 
 module_names = (
-    'ui',
     'selections',
     'cleanup',
     'filtering',

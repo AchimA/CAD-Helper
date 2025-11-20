@@ -3,6 +3,57 @@ import bpy
 import mathutils
 from . import shared_functions
 
+##############################################################################
+# Panel
+##############################################################################
+
+class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'
+    bl_label = 'CAD Clean-Up Helper'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+
+    def draw(self, context):
+        layout = self.layout
+
+        # Clean-Up
+        box = layout.box()
+        box.label(text='Clean-Up')
+        box.operator(
+            'object.delete_and_reparent_children',
+            icon='SNAP_PEEL_OBJECT'
+            )
+        box.operator(
+            'object.delete_child_empties_without_children',
+            icon='OUTLINER_DATA_EMPTY'
+            )
+        box.operator(
+            'object.flatten_hierarchy',
+            icon='OUTLINER'
+        )
+        box.operator(
+            'object.flatten_and_join_hierarchy',
+            icon='CON_CHILDOF'
+        )
+
+        # Empties
+        box = layout.box()
+        box.label(text='Empties')
+        box.operator(
+            'object.norm_empty_size',
+            icon='EMPTY_DATA'
+            )
+        box.operator(
+            'object.center_empties_to_children',
+            icon='ANCHOR_CENTER'
+            )
+
+##############################################################################
+# Operators
+##############################################################################
+
 class DeleteAndReparentChildren(bpy.types.Operator):
     '''
     Reconnects all the children of an object to it's
@@ -254,6 +305,7 @@ class CenterEmptiesToChildren(bpy.types.Operator):
 # Add-On Handling
 ##############################################################################
 classes = (
+    CAD_CLEAN_HELPER_PT_Panel,
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
     FlattenHierarchy,
