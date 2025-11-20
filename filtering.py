@@ -1,6 +1,7 @@
 # GPL-3.0 license
 import bpy
 import re
+from . import shared_functions
 
 class FilterSelection(bpy.types.Operator):
     '''
@@ -27,6 +28,7 @@ class FilterSelection(bpy.types.Operator):
         if self.prop_BB_min > self.prop_BB_max:
             self.prop_BB_min = self.prop_BB_max
 
+    # Revert to annotation style so Blender registers these as RNA properties
     prop_use_regex: bpy.props.BoolProperty(
         name='Use Regex',
         default=False
@@ -56,7 +58,6 @@ class FilterSelection(bpy.types.Operator):
         name='Include Types:',
         description="My enum description",
         items=[
-            # identifier    name       description   number
             ('MESH', "Mesh", "Active Button"),
             ('CURVE', "Curve", "Show a Slider"),
             ('SURFACE', "Surface", "Show a Slider"),
@@ -97,7 +98,7 @@ class FilterSelection(bpy.types.Operator):
             try:
                 pattern = re.compile(self.prop_namefilter)
             except:
-                self.report({'INFO'}, 'Regex failed, no matches returned.')
+                shared_functions.report_warning(self, 'Regex failed, no matches returned.')
                 pattern = re.compile('a^')
         else:
             p_string = self.prop_namefilter
@@ -112,7 +113,7 @@ class FilterSelection(bpy.types.Operator):
 
         # do the filtering of the selection here...
         if not init_selection:
-            self.report({'INFO'}, 'No selection')
+            shared_functions.report_info(self, 'No selection')
             return {'CANCELLED'}
 
         self.biggest_BB_size = max([obj.dimensions.length for obj in init_selection])
@@ -126,7 +127,7 @@ class FilterSelection(bpy.types.Operator):
                 obj.select_set(True)
                 selected_count += 1
 
-        self.report({'INFO'}, f'{selected_count} of {len(init_selection)} are currently selected')
+        shared_functions.report_info(self, f'{selected_count} of {len(init_selection)} currently selected')
         return {'FINISHED'}
 
     def draw(self, context):
@@ -214,7 +215,7 @@ class FilterbyVertCount(bpy.types.Operator):
             o.select_set(False)
 
         if not init_selection:
-            self.report({'INFO'}, 'No mesh objects in selection')
+            shared_functions.report_info(self, 'No mesh objects in selection')
             return {'CANCELLED'}
 
         self.biggest_VT_size = max([len(obj.data.vertices) for obj in init_selection])
@@ -226,7 +227,7 @@ class FilterbyVertCount(bpy.types.Operator):
                 obj.select_set(True)
                 selected_count += 1
 
-        self.report({'INFO'}, f'{selected_count} of {len(init_selection)} are currently selected')
+        shared_functions.report_info(self, f'{selected_count} of {len(init_selection)} currently selected')
         return {'FINISHED'}
 
     def draw(self, context):

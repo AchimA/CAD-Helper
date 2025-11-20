@@ -1,5 +1,6 @@
 # GPL-3.0 license
 import bpy
+from . import shared_functions
 
 ##############################################################################
 # Panel
@@ -29,7 +30,7 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
         op.extend=True
         op = grid.operator(
             'object.select_hierarchy',
-            text='Extend Selection to Chilren',
+            text='Extend Selection to Children',
             icon='TRIA_DOWN_BAR'
             )
         op.direction='CHILD'
@@ -89,6 +90,7 @@ class SelectAllChildren(bpy.types.Operator):
     bl_label = "Select All Children Recursively"
     bl_options = {"REGISTER", "UNDO"}
 
+    # Use Blender's recommended annotation style so the property is registered correctly
     extend: bpy.props.BoolProperty(
         name="Extend",
         description="Don't deselect existing selection",
@@ -102,7 +104,7 @@ class SelectAllChildren(bpy.types.Operator):
     def execute(self, context):
         roots = list(context.selected_objects)
         if not roots:
-            self.report({'INFO'}, "No selection")
+            shared_functions.report_info(self, "No selection")
             return {'CANCELLED'}
 
         # collect children (use set to avoid duplicates)
@@ -111,7 +113,7 @@ class SelectAllChildren(bpy.types.Operator):
             sel_children.update(r.children_recursive)
 
         if not sel_children:
-            self.report({'INFO'}, "No children found")
+            shared_functions.report_info(self, "No children found")
             return {'CANCELLED'}
 
         # if not extending, deselect current selection first

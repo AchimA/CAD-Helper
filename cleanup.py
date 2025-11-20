@@ -201,10 +201,10 @@ class FlattenJoinHierarchy(bpy.types.Operator):
 
 class NormEmptySize(bpy.types.Operator):
     '''
-    Normaliaes the Empty Display Size
+    Normalizes the Empty Display Size
     '''
     bl_idname = 'object.norm_empty_size'
-    bl_label = 'Normalise Empty Size'
+    bl_label = 'Normalize Empty Size'
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod

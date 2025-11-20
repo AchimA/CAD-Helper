@@ -9,7 +9,7 @@ from . import shared_functions
 class LinkableCollectionItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name='Items Name', default='Unknown')
     objects: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup, name='Linkable Objects')
-    N_objects: bpy.props.IntProperty(name='Eumber of Objects', default=0)
+    N_objects: bpy.props.IntProperty(name='Number of Objects', default=0)
 
 def ListIndexCallback(self, value):
     # bpy.ops.generate_markers.change_marker() #other class function

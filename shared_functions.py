@@ -10,7 +10,25 @@ def get_material_list(context):
                 material_list.append(mat.material)
     return material_list
 
-    return 0
+
+# Centralized reporting utilities for consistent message formatting
+_REPORT_PREFIX = "CAD Helper: "
+
+def report(op, level: str, message: str):
+    """Generic reporting helper.
+    level: 'INFO' | 'WARNING' | 'ERROR'
+    Adds a common prefix to all messages.
+    """
+    op.report({level}, _REPORT_PREFIX + message)
+
+def report_info(op, message: str):
+    report(op, 'INFO', message)
+
+def report_warning(op, message: str):
+    report(op, 'WARNING', message)
+
+def report_error(op, message: str):
+    report(op, 'ERROR', message)
 
 
 def apply_modifiers_and_join(context, objects_list):

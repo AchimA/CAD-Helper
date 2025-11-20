@@ -60,22 +60,19 @@ class Transfer_VP_to_Nodes(bpy.types.Operator):
         err = 0
         for mat in material_list:
             try:
-                self.report({'INFO'}, 'Processing:\t{}'.format(mat.name))
-                mat.node_tree.nodes['Principled BSDF'].inputs[0].default_value = mat.diffuse_color
-                mat.node_tree.nodes['Principled BSDF'].inputs[6].default_value = mat.metallic
-                mat.node_tree.nodes['Principled BSDF'].inputs[9].default_value = mat.roughness
+                node = getattr(mat, 'node_tree', None)
+                if node is None or node.nodes.get('Principled BSDF') is None:
+                    raise KeyError('Principled BSDF node missing')
+                bsdf = node.nodes['Principled BSDF']
+                shared_functions.report_info(self, f'Processing: {mat.name}')
+                bsdf.inputs[0].default_value = mat.diffuse_color
+                bsdf.inputs[6].default_value = mat.metallic
+                bsdf.inputs[9].default_value = mat.roughness
                 ok += 1
-            except:
-                # Errror Handling, falls etwas schief läuft....
-                self.report(
-                    {'INFO'},
-                    'WARNING!:\tThere has been an error processing \'{}\''.format(mat.name)
-                    )
+            except (AttributeError, KeyError, IndexError, TypeError) as e:
+                shared_functions.report_warning(self, f"Skipping {mat.name} ({e})")
                 err += 1
-        self.report(
-            {'INFO'},
-            'Processing Matterial ({} OK, {} errors)'.format(ok, err)
-            )
+        shared_functions.report_info(self, f'Processed Materials ({ok} OK, {err} skipped)')
 
         return {'FINISHED'}
 
@@ -95,22 +92,19 @@ class Transfer_Nodes_to_VP(bpy.types.Operator):
         err = 0
         for mat in material_list:
             try:
-                self.report({'INFO'}, 'Processing:\t{}'.format(mat.name))
-                mat.diffuse_color = mat.node_tree.nodes['Principled BSDF'].inputs[0].default_value
-                mat.metallic = mat.node_tree.nodes['Principled BSDF'].inputs[6].default_value
-                mat.roughness = mat.node_tree.nodes['Principled BSDF'].inputs[9].default_value
+                node = getattr(mat, 'node_tree', None)
+                if node is None or node.nodes.get('Principled BSDF') is None:
+                    raise KeyError('Principled BSDF node missing')
+                bsdf = node.nodes['Principled BSDF']
+                shared_functions.report_info(self, f'Processing: {mat.name}')
+                mat.diffuse_color = bsdf.inputs[0].default_value
+                mat.metallic = bsdf.inputs[6].default_value
+                mat.roughness = bsdf.inputs[9].default_value
                 ok += 1
-            except:
-                # Errror Handling, falls etwas schief läuft....
-                self.report(
-                    {'INFO'},
-                    'WARNING!:\tThere has been an error processing \'{}\''.format(mat.name)
-                    )
+            except (AttributeError, KeyError, IndexError, TypeError) as e:
+                shared_functions.report_warning(self, f"Skipping {mat.name} ({e})")
                 err += 1
-        self.report(
-            {'INFO'},
-            'Processing Matterial ({} OK, {} errors)'.format(ok, err)
-            )
+        shared_functions.report_info(self, f'Processed Materials ({ok} OK, {err} skipped)')
 
         return {'FINISHED'}
 
@@ -130,7 +124,7 @@ class Clear_Viewport_Display_Settings(bpy.types.Operator):
     def execute(self, context):
         material_list = shared_functions.get_material_list(context)
         for mat in material_list:
-            self.report({'INFO'}, 'Processing:\t{}'.format(mat.name))
+            shared_functions.report_info(self, f'Clearing Viewport: {mat.name}')
             mat.diffuse_color = (0.8, 0.8, 0.8, 1)
             mat.metallic = 0
             mat.roughness = 0.4
@@ -161,7 +155,7 @@ class CleanupMaterialsOperator(bpy.types.Operator):
                 # If the material is not in the dictionary, add it
                 if key not in unique_materials:
                     unique_materials[key] = material
-            except:
+            except (AttributeError, KeyError):
                 continue
 
         # Iterate through all the objects in the scene
@@ -176,16 +170,13 @@ class CleanupMaterialsOperator(bpy.types.Operator):
 
                     # If the material in the slot is a duplicated material, replace it with the unique material
                     if this_key in unique_materials and slot.material not in unique_materials.values():
-                        self.report(
-                            {'INFO'},
-                            'Replacing {} with {}'.format(slot.material.name_full, unique_materials[this_key].name_full)
-                            )
+                        shared_functions.report_info(self, f'Replacing {slot.material.name_full} -> {unique_materials[this_key].name_full}')
                         obj.active_material_index = i
                         obj.active_material = unique_materials[this_key]
                     # if principled_node.inputs['Base Color'].default_value[0] == unique_materials[key].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value[0] and principled_node.inputs['Base Color'].default_value[1] == unique_materials[key].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value[1] and principled_node.inputs['Base Color'].default_value[2] == unique_materials[key].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value[2] and principled_node.inputs['Alpha'].default_value == unique_materials[key].node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value and principled_node.inputs['Roughness'].default_value == unique_materials and principled_node.inputs['Metallic'].default_value == unique_materials[key].node_tree.nodes['Principled BSDF'].inputs['Metallic'].default_value:
                     #     obj.active_material_index = i
                     #     obj.active_material = unique_materials[key]
-                except:
+                except (AttributeError, KeyError):
                     continue
 
         # Iterate through all the materials in the scene again
@@ -197,7 +188,7 @@ class CleanupMaterialsOperator(bpy.types.Operator):
                 # If the material is not in the dictionary of unique materials, delete it
                 if material not in unique_materials.values():
                     bpy.data.materials.remove(material)
-            except:
+            except (AttributeError, KeyError):
                 continue
 
         return {'FINISHED'}
