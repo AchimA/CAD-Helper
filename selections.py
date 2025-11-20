@@ -60,10 +60,6 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
             'object.filter_selection',
             icon='FILTER'
             )
-        box.operator(
-            'object.filter_by_vertex_count',
-            icon='VERTEXSEL'
-            )
 
         # Moved options to collapsible child panel below
 

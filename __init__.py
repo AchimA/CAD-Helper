@@ -9,6 +9,7 @@ module_names = (
     'filtering',
     'LinkObjData',
     'materials',
+    'visualization',
     # ObjectPreview,
         )
 

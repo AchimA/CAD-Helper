@@ -8,7 +8,6 @@ class FilterSelection(bpy.types.Operator):
     Filter all the selected objects by:
         - Object Name
         - Object Type
-        - Bounding Box Dimensions (diagonaly)
     '''
     bl_idname = 'object.filter_selection'
     bl_label = 'Filter Selection '
@@ -148,106 +147,6 @@ class FilterSelection(bpy.types.Operator):
 
         layout.separator(factor=1)
 
-        box = layout.box()
-        box.label(text='Filter by Bounding Box Size', icon='FIXED_SIZE')
-        
-        row = box.row()
-        row.label(text=f'min: {self.prop_BB_min/100*self.biggest_BB_size:.2f}')
-        row.separator()
-        row.label(text=f'max: {self.prop_BB_max/100*self.biggest_BB_size:.2f}')
-
-        box.prop(self, 'prop_BB_min', slider=True)
-        box.prop(self, 'prop_BB_max', slider=True)
-
-
-class FilterbyVertCount(bpy.types.Operator):
-    '''
-    Filter all the selected objects by vertex count.
-    Works only on mesh type objects!
-    '''
-    bl_idname = 'object.filter_by_vertex_count'
-    bl_label = 'Filter Selection by Vertex Count'
-    bl_options = {"REGISTER", "UNDO"}
-
-    
-    @classmethod
-    def poll(cls, context):
-        return context.selected_objects
-
-    # update function, which makes sure min is never
-    # lager than max and max is never smaller than min
-    
-    def update_VT_min_func(self, context):
-        if self.prop_VT_max < self.prop_VT_min:
-            self.prop_VT_max = self.prop_VT_min
-
-    def update_VT_max_func(self, context):
-        if self.prop_VT_min > self.prop_VT_max:
-            self.prop_VT_min = self.prop_VT_max
-
-    prop_VT_min: bpy.props.FloatProperty(
-        name='Min Count (%)',
-        update=update_VT_min_func,
-        default=0,
-        soft_min=0,
-        soft_max=100
-        )
-    prop_VT_max: bpy.props.FloatProperty(
-        name='Max Count (%)',
-        update=update_VT_max_func,
-        default=100,
-        soft_min=0,
-        soft_max=100
-        )
-
-    def invoke(self, context, event):
-        # set default object types:
-        self.prop_VT_min = 0
-        self.prop_VT_max = 100
-
-        return self.execute(context)
-
-    def execute(self, context):
-        init_selection = [o for o in context.selected_objects if o.type == 'MESH']
-
-        # deselect everything in this view layer (avoid bpy.ops)
-        for o in context.view_layer.objects:
-            o.select_set(False)
-
-        if not init_selection:
-            shared_functions.report_info(self, 'No mesh objects in selection')
-            return {'CANCELLED'}
-
-        self.biggest_VT_size = max([len(obj.data.vertices) for obj in init_selection])
-
-        selected_count = 0
-        for obj in init_selection:
-            pct = len(obj.data.vertices) / self.biggest_VT_size * 100
-            if self.prop_VT_min <= pct <= self.prop_VT_max:
-                obj.select_set(True)
-                selected_count += 1
-
-        shared_functions.report_info(self, f'{selected_count} of {len(init_selection)} currently selected')
-        return {'FINISHED'}
-
-    def draw(self, context):
-
-        layout = self.layout
-        layout.use_property_split = True
-        # layout.label(text='Filter Selection')
-
-        layout.separator(factor=1)
-
-        box = layout.box()
-        box.label(text='Filter by Vertex Count', icon='VERTEXSEL')
-        
-        row = box.row()
-        row.label(text=f'min: {int(self.prop_VT_min/100*self.biggest_VT_size)}')
-        row.separator()
-        row.label(text=f'max: {int(self.prop_VT_max/100*self.biggest_VT_size)}')
-
-        box.prop(self, 'prop_VT_min', slider=True)
-        box.prop(self, 'prop_VT_max', slider=True)
 
 
 ##############################################################################
@@ -255,7 +154,6 @@ class FilterbyVertCount(bpy.types.Operator):
 ##############################################################################
 classes = (
     FilterSelection,
-    FilterbyVertCount,
 )
 
 def register():
