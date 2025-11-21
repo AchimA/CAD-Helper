@@ -4,7 +4,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "cad_helper"
-version = "0.6.0"
+version = "0.6.1"
 name = "CAD-Helper"
 tagline = "Blender Extension to manage imported CAD assemblies"
 maintainer = "Achim A."
