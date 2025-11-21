@@ -58,3 +58,11 @@ Implemented operators are:
 * **Link / Object-Data Helper  [❗Experimental]**
     * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.\
     ❗→ Since only the name is checked, it might have unwanted behavior. Please be sure to check the outcome!
+
+## TODO
+- [ ] Clean Visualization & Filtering UI
+- [ ] Scan selection for:
+    - Object where vertices can be merged
+    - Mesh objects where the origin lies outside of the bounding box boundary
+    - Scan for empties that could be removed (leaf empties & empties with only one child)
+- [ ] Helper to clean / reset the mesh normals
