@@ -1,6 +1,43 @@
 # GPL-3.0 license
 import bpy
 from . import shared_functions
+##############################################################################
+# Panel
+##############################################################################
+
+class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_MAT_HELPER_PT_Panel'
+    bl_label = '[Exp.] CAD Material Helper'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+
+        box = layout.box()
+        box.label(text='Transfer Material Properties')
+        box.operator(
+            'object.transfer_nodes_to_vp',
+            icon='TRIA_RIGHT'
+            )
+        box.operator(
+            'object.transfer_vp_to_nodes',
+            icon='TRIA_LEFT'
+            )
+
+        box = layout.box()
+        box.label(text='Clean-Up Materials')
+        box.operator(
+            'object.clear_vp_display',
+            icon='LOOP_BACK'
+            )
+        box.operator(
+            'object.cleanup_duplicate_materials',
+            icon='MATERIAL'
+            )
 
 ##############################################################################
 # Operators
