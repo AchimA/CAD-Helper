@@ -10,7 +10,7 @@ from . import shared_functions
 
 class CAD_VIS_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_VIS_HELPER_PT_Panel'
-    bl_label = 'Visualization'
+    bl_label = 'Visualization & Filtering'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'

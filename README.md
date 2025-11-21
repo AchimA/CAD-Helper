@@ -5,6 +5,8 @@
 
 # <img src="images/ICON.png" alt="Icon" width="86"/> Blender Extension: CAD Helper
 
+**Version 0.6.0** | Requires Blender 5.0.0 or later
+
 Blender Extension for imported CAD assemblies.\
 <img src="images\2025-11-11_CAD-Helper.png" alt="User Interface" width="600"/>
 
@@ -14,6 +16,15 @@ This extension aims to simplify the cleaning & restructuring of imported CAD ass
 Most operators work on selections (either one or multiple objects within the assembly structure).
 
 Implemented operators are: 
+* **Visualization & Filtering**
+    * **Color by Depth** - Visualize hierarchy depth (root → deep) with color gradients
+    * **Color by Polycount** - Visualize polygon count across objects
+    * **Color by BBox Size** - Visualize bounding box dimensions
+    * **Colormaps** - Choose from jet, turbo, cubehelix, or custom colormaps (loaded from `colormaps.json`)
+    * **Scale Modes** - Ranked (percentile-based) or Linear (absolute value) normalization
+    * **Live Filtering** - Real-time min/max percentile filter sliders to dynamically show/hide objects
+    * **Alpha Control** - Adjustable transparency range for enhanced depth perception
+    * **Restore Colors** - Non-destructive color restoration to original viewport colors
 * **Selection Helper**
     * Select parent or child objects (with or without extending the selection)
     * Recursively select all child elements of the current selection
@@ -46,4 +57,4 @@ Implemented operators are:
     :information_source: This operator works on the entire scene, not only selected objects.
 * **Link / Object-Data Helper  [❗Experimental]**
     * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.\
-    ❗→ Since only the name is checked, it might have unwanted behaviour. Please be sure to check the outcome!
+    ❗→ Since only the name is checked, it might have unwanted behavior. Please be sure to check the outcome!
