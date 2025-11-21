@@ -5,11 +5,11 @@ import importlib
 
 module_names = (
     'selections',
+    'visualization',
     'cleanup',
     'filtering',
     'LinkObjData',
     'materials',
-    'visualization',
     # ObjectPreview,
         )
 

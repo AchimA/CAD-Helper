@@ -24,6 +24,8 @@ class CAD_VIS_HELPER_PT_Panel(bpy.types.Panel):
         row.operator('object.cad_color_by_depth', text='Depth', icon='GROUP')
         row.operator('object.cad_color_by_polycount', text='Poly', icon='MESH_DATA')
         row.operator('object.cad_color_by_bbox', text='BBox', icon='CUBE')
+        row = layout.row(align=True)
+        row.prop(context.scene, 'cad_vis_scope', text='Scope')
 
         # Always-visible filter (stacked for clarity); Blender has no dual-handle range slider
         filter_box = layout.box()
@@ -46,7 +48,6 @@ class CAD_VIS_HELPER_PT_Options(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(context.scene, 'cad_vis_scope', text='Scope')
         layout.prop(context.scene, 'cad_vis_scale_mode', text='Scale')
         layout.prop(context.scene, 'cad_vis_colormap', text='Colormap')
         row = layout.row(align=True)

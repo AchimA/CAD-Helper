@@ -5,6 +5,89 @@ import re
 
 from . import shared_functions
 
+
+
+##############################################################################
+# Helper Functions
+##############################################################################
+# Metric calculation function for binning
+
+def get_object_metrics(ob):
+    if ob.type != 'MESH':
+        return None
+    mesh = ob.data
+    v_count = len(mesh.vertices)
+    bbox = ob.bound_box
+    xs = [v[0] for v in bbox]
+    ys = [v[1] for v in bbox]
+    zs = [v[2] for v in bbox]
+    x_len = max(xs) - min(xs)
+    y_len = max(ys) - min(ys)
+    z_len = max(zs) - min(zs)
+    volume = x_len * y_len * z_len
+    surface = sum(f.area for f in mesh.polygons)
+    return {
+        'vertex_count': v_count,
+        'x_len': x_len,
+        'y_len': y_len,
+        'z_len': z_len,
+        'volume': volume,
+        'surface': surface
+    }
+
+def summarize_and_bin_objects(objects, scene):
+    import statistics
+    wm = bpy.context.window_manager
+    total = len(objects)
+    wm.progress_begin(0, total)
+    metrics = []
+    for idx, ob in enumerate(objects):
+        wm.progress_update(idx)
+        m = get_object_metrics(ob)
+        if m:
+            metrics.append(m)
+    wm.progress_end()
+    # Binning
+    tol_vertex = scene.cad_bin_tol_vertex / 100.0
+    tol_axes = scene.cad_bin_tol_axes / 100.0
+    tol_surface = scene.cad_bin_tol_surface / 100.0
+    tol_volume = scene.cad_bin_tol_volume / 100.0
+    bins = []
+    for ob, metrics in zip(objects, metrics):
+        found_bin = None
+        for b in bins:
+            avg = b['avg']
+            if (
+                abs(metrics['vertex_count'] - avg['vertex_count']) <= tol_vertex * avg['vertex_count'] and
+                abs(metrics['x_len'] - avg['x_len']) <= tol_axes * avg['x_len'] and
+                abs(metrics['y_len'] - avg['y_len']) <= tol_axes * avg['y_len'] and
+                abs(metrics['z_len'] - avg['z_len']) <= tol_axes * avg['z_len'] and
+                abs(metrics['surface'] - avg['surface']) <= tol_surface * avg['surface'] and
+                abs(metrics['volume'] - avg['volume']) <= tol_volume * avg['volume']
+            ):
+                found_bin = b
+                break
+        if found_bin:
+            found_bin['objects'].append(ob)
+            n = len(found_bin['objects'])
+            for k in avg:
+                avg[k] = (avg[k] * (n-1) + metrics[k]) / n
+        else:
+            bins.append({'objects': [ob], 'avg': metrics.copy()})
+    bins = [b for b in bins if len(b['objects']) > 1]
+    bins.sort(key=lambda b: len(b['objects']), reverse=True)
+    # Populate linkable_collections with bins
+    scene.linkable_collections.clear()
+    for i, b in enumerate(bins):
+        item = scene.linkable_collections.add()
+        item.name = f"Bin {i+1}"
+        for obj in b['objects']:
+            ob_item = item.objects.add()
+            ob_item.name = obj.name
+        item.N_objects = len(b['objects'])
+##############################################################################
+
+
 # Assign linkable collection.
 class LinkableCollectionItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name='Items Name', default='Unknown')
@@ -119,8 +202,8 @@ class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
 
 class UIListPanelLinkableCollection(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
-    bl_label = "[Exp.] CAD Object Data Helper"
-    bl_idname = "PANEL_PT_linkable_collection"
+    bl_label = "Instance Detection & Linking"
+    bl_idname = "PANEL_PT_instance_detection_linking"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
@@ -138,11 +221,9 @@ class UIListPanelLinkableCollection(bpy.types.Panel):
             text=f'Rescan Selection',
             icon='FILE_REFRESH'
             )
-        
+
         layout.template_list('LINKABLE_COLLECTION_UL_LIST', 'a list', scene, 'linkable_collections', scene, 'lin_col_idx')
-        
         row = layout.row()
-        
         row.operator(
             'object.list_link_collection',
             text='Link Collection',
@@ -154,46 +235,87 @@ class UIListPanelLinkableCollection(bpy.types.Panel):
             icon='LINKED'
             )
 
+class InstanceDetectionTolerancesPanel(bpy.types.Panel):
+    bl_label = "Instance Detection Tolerances"
+    bl_idname = "PANEL_PT_instance_detection_tolerances"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+    bl_parent_id = "PANEL_PT_instance_detection_linking"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        scene = context.scene
+        layout = self.layout
+        grid = layout.grid_flow(row_major=True, columns=2, even_columns=True, even_rows=True, align=True)
+        grid.prop(scene, 'cad_bin_tol_vertex', text="Vertex Count (%)")
+        grid.prop(scene, 'cad_bin_tol_axes', text="Axes (%)")
+        grid.prop(scene, 'cad_bin_tol_surface', text="Surface (%)")
+        grid.prop(scene, 'cad_bin_tol_volume', text="Volume (%)")
+
 class RefreshLinkableCollection(bpy.types.Operator):
     '''
-    Refresh the colletion of linkable objects
+    Refresh the collection for Instance Detection & Linking
     '''
     bl_idname = 'object.refresh_linkable_collection'
-    bl_label = 'Refresh Linkable Collection'
+    bl_label = 'Refresh Instance Detection & Linking'
     bl_options = {"REGISTER", "UNDO"}
     
     def execute(self, context):
         objects = context.selected_objects
-        prop_types = ['MESH','CURVE','SURFACE','META','FONT','VOLUME']
+        prop_types = ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'VOLUME']
         objects = [ob for ob in objects if ob.type in prop_types]
 
-        p = re.compile('^(.*?)(?=\.\d*$|$)')
-
-        unique_names = []
-        for ob in objects:
-            match = p.match(ob.name)
-            match = match.group()
-            if match not in unique_names:
-                unique_names.append(match)
+        # Single efficient summary and binning
+        summarize_and_bin_objects(objects, context.scene)
         
-        context.scene.linkable_collections.clear()
-        for u_name in unique_names:
-            u_objects = []
-            for ob in objects:
-                # add object to list if if it has the same name
-                if u_name == p.match(ob.name).group():
-                    u_objects.append(ob)
-            if len(u_objects) > 1:
-                item = context.scene.linkable_collections.add()
-                item.name = u_name
-                for obj in u_objects:
-                    ob = item.objects.add()
-                    ob.name = obj.name
-                item.N_objects = len(u_objects)
-                # ToDo:
-                # Create Icon here...
-
         return {'FINISHED'}
+
+def debug_object_metrics(objects):
+    print("--- CAD Helper Object Metrics Debug (Summary) ---")
+    metrics = []
+    wm = bpy.context.window_manager
+    total = len(objects)
+    wm.progress_begin(0, total)
+    for idx, ob in enumerate(objects):
+        wm.progress_update(idx)
+        if ob.type != 'MESH':
+            continue
+        mesh = ob.data
+        v_count = len(mesh.vertices)
+        bbox = ob.bound_box
+        xs = [v[0] for v in bbox]
+        ys = [v[1] for v in bbox]
+        zs = [v[2] for v in bbox]
+        x_len = max(xs) - min(xs)
+        y_len = max(ys) - min(ys)
+        z_len = max(zs) - min(zs)
+        volume = x_len * y_len * z_len
+        surface = sum(f.area for f in mesh.polygons)
+        metrics.append((v_count, x_len, y_len, z_len, volume, surface))
+        percent = int((idx + 1) / total * 100) if total else 100
+        print(f"Progress: {percent}%", end='\r')
+    wm.progress_end()
+    print()
+    if not metrics:
+        print("No mesh objects found.")
+        return
+    import statistics
+    v_counts = [m[0] for m in metrics]
+    x_lens = [m[1] for m in metrics]
+    y_lens = [m[2] for m in metrics]
+    z_lens = [m[3] for m in metrics]
+    volumes = [m[4] for m in metrics]
+    surfaces = [m[5] for m in metrics]
+    print(f"Total mesh objects: {len(metrics)}")
+    print(f"Vertex count: min={min(v_counts)}, max={max(v_counts)}, mean={statistics.mean(v_counts):.2f}, stdev={statistics.stdev(v_counts):.2f}")
+    print(f"X axis: min={min(x_lens):.4f}, max={max(x_lens):.4f}, mean={statistics.mean(x_lens):.4f}, stdev={statistics.stdev(x_lens):.4f}")
+    print(f"Y axis: min={min(y_lens):.4f}, max={max(y_lens):.4f}, mean={statistics.mean(y_lens):.4f}, stdev={statistics.stdev(y_lens):.4f}")
+    print(f"Z axis: min={min(z_lens):.4f}, max={max(z_lens):.4f}, mean={statistics.mean(z_lens):.4f}, stdev={statistics.stdev(z_lens):.4f}")
+    print(f"Bounding box volume: min={min(volumes):.4f}, max={max(volumes):.4f}, mean={statistics.mean(volumes):.4f}, stdev={statistics.stdev(volumes):.4f}")
+    print(f"Face surface area: min={min(surfaces):.4f}, max={max(surfaces):.4f}, mean={statistics.mean(surfaces):.4f}, stdev={statistics.stdev(surfaces):.4f}")
+    print("--- End Debug Summary ---")
 
 class LinkCollections(bpy.types.Operator):
     bl_idname = "object.link_collections"
@@ -226,6 +348,7 @@ classes = (
     LinkableCollectionItem,
     LINKABLE_COLLECTION_UL_LIST,
     UIListPanelLinkableCollection,
+    InstanceDetectionTolerancesPanel,
     LinkCollections,
     LIST_OT_LinkALLCollections,
     LIST_OT_SelectCollection,
@@ -240,7 +363,16 @@ def register():
 
     bpy.types.Scene.linkable_collections = bpy.props.CollectionProperty(type=LinkableCollectionItem)
     bpy.types.Scene.lin_col_idx = bpy.props.IntProperty(name='Index', update=ListIndexCallback)
-
+    bpy.types.Scene.cad_bin_tol_vertex = bpy.props.FloatProperty(
+        name="Vertex Count Tolerance (%)", default=5.0, min=0.0, max=100.0)
+    bpy.types.Scene.cad_bin_tol_axes = bpy.props.FloatProperty(
+        name="Principal Axes Tolerance (%)", default=1.0, min=0.0, max=100.0)
+    bpy.types.Scene.cad_bin_tol_surface = bpy.props.FloatProperty(
+        name="Face Surface Tolerance (%)", default=1.0, min=0.0, max=100.0)
+    bpy.types.Scene.cad_bin_tol_volume = bpy.props.FloatProperty(
+        name="Bounding Box Volume Tolerance (%)", default=5.0, min=0.0, max=100.0)
+    bpy.types.Scene.show_instance_tolerances = bpy.props.BoolProperty(
+        name="Show Instance Detection Tolerances", default=True)
 
 def unregister():
     # unregister classes
@@ -250,3 +382,88 @@ def unregister():
 
     del bpy.types.Scene.linkable_collections
     del bpy.types.Scene.lin_col_idx
+    del bpy.types.Scene.cad_bin_tol_vertex
+    del bpy.types.Scene.cad_bin_tol_axes
+    del bpy.types.Scene.cad_bin_tol_surface
+    del bpy.types.Scene.cad_bin_tol_volume
+    del bpy.types.Scene.show_instance_tolerances
+
+
+##############################################################################
+# Helper Functions
+##############################################################################
+# Metric calculation function for binning
+
+def get_object_metrics(ob):
+    if ob.type != 'MESH':
+        return None
+    mesh = ob.data
+    v_count = len(mesh.vertices)
+    bbox = ob.bound_box
+    xs = [v[0] for v in bbox]
+    ys = [v[1] for v in bbox]
+    zs = [v[2] for v in bbox]
+    x_len = max(xs) - min(xs)
+    y_len = max(ys) - min(ys)
+    z_len = max(zs) - min(zs)
+    volume = x_len * y_len * z_len
+    surface = sum(f.area for f in mesh.polygons)
+    return {
+        'vertex_count': v_count,
+        'x_len': x_len,
+        'y_len': y_len,
+        'z_len': z_len,
+        'volume': volume,
+        'surface': surface
+    }
+
+def summarize_and_bin_objects(objects, scene):
+    import statistics
+    wm = bpy.context.window_manager
+    total = len(objects)
+    wm.progress_begin(0, total)
+    metrics = []
+    for idx, ob in enumerate(objects):
+        wm.progress_update(idx)
+        m = get_object_metrics(ob)
+        if m:
+            metrics.append(m)
+    wm.progress_end()
+    # Binning
+    tol_vertex = scene.cad_bin_tol_vertex / 100.0
+    tol_axes = scene.cad_bin_tol_axes / 100.0
+    tol_surface = scene.cad_bin_tol_surface / 100.0
+    tol_volume = scene.cad_bin_tol_volume / 100.0
+    bins = []
+    for ob, metrics in zip(objects, metrics):
+        found_bin = None
+        for b in bins:
+            avg = b['avg']
+            if (
+                abs(metrics['vertex_count'] - avg['vertex_count']) <= tol_vertex * avg['vertex_count'] and
+                abs(metrics['x_len'] - avg['x_len']) <= tol_axes * avg['x_len'] and
+                abs(metrics['y_len'] - avg['y_len']) <= tol_axes * avg['y_len'] and
+                abs(metrics['z_len'] - avg['z_len']) <= tol_axes * avg['z_len'] and
+                abs(metrics['surface'] - avg['surface']) <= tol_surface * avg['surface'] and
+                abs(metrics['volume'] - avg['volume']) <= tol_volume * avg['volume']
+            ):
+                found_bin = b
+                break
+        if found_bin:
+            found_bin['objects'].append(ob)
+            n = len(found_bin['objects'])
+            for k in avg:
+                avg[k] = (avg[k] * (n-1) + metrics[k]) / n
+        else:
+            bins.append({'objects': [ob], 'avg': metrics.copy()})
+    bins = [b for b in bins if len(b['objects']) > 1]
+    bins.sort(key=lambda b: len(b['objects']), reverse=True)
+    # Populate linkable_collections with bins
+    scene.linkable_collections.clear()
+    for i, b in enumerate(bins):
+        item = scene.linkable_collections.add()
+        item.name = f"Bin {i+1}"
+        for obj in b['objects']:
+            ob_item = item.objects.add()
+            ob_item.name = obj.name
+        item.N_objects = len(b['objects'])
