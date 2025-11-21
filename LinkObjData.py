@@ -93,6 +93,7 @@ class LinkableCollectionItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name='Items Name', default='Unknown')
     objects: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup, name='Linkable Objects')
     N_objects: bpy.props.IntProperty(name='Number of Objects', default=0)
+    selected: bpy.props.BoolProperty(name='Selected', default=False)
 
 def ListIndexCallback(self, value):
     # bpy.ops.generate_markers.change_marker() #other class function
@@ -128,59 +129,100 @@ class LIST_OT_LinkCollection(bpy.types.Operator):
     bl_idname = "object.list_link_collection"
     bl_label = "Link Collection"
 
+    _indices_to_link = None
+    _step = 0
+    _total = 0
+    _undo_state = None
+
     @classmethod
     def poll(cls, context):
         return context.scene.linkable_collections
-    
-    def invoke(self, context, event):
-        # use the event parameter so invoke_confirm shows
-        return context.window_manager.invoke_confirm(
-            self,
-            event,
-            title='Proceed and link selected collection?',
-            message='Warning: This will overwrite mesh data of target objects.',
-            confirm_text='Link',
-            icon='WARNING',
-            )
-    
+
     def execute(self, context):
-        # invoke the link operator so the confirm dialog appears
-        bpy.ops.object.link_collections('INVOKE_DEFAULT')
-        return{'FINISHED'}
+        linkable_collections = context.scene.linkable_collections
+        self._indices_to_link = [i for i, item in enumerate(linkable_collections) if item.selected]
+        if not self._indices_to_link:
+            self._indices_to_link = [context.scene.lin_col_idx]
+        self._indices_to_link.sort(reverse=True)
+        self._step = 0
+        self._total = len(self._indices_to_link)
+        # Disable global undo for speed
+        self._undo_state = bpy.context.preferences.edit.use_global_undo
+        bpy.context.preferences.edit.use_global_undo = False
+        context.window_manager.progress_begin(0, self._total)
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        linkable_collections = context.scene.linkable_collections
+        if self._step < self._total:
+            idx = self._indices_to_link[self._step]
+            item = linkable_collections[idx]
+            objects = [bpy.data.objects[o.name] for o in list(item.objects)]
+            if objects:
+                first_data = objects[0].data
+                # Batch assignment
+                for obj in objects[1:]:
+                    obj.data = first_data
+            linkable_collections.remove(idx)
+            context.window_manager.progress_update(self._step)
+            self._step += 1
+            return {'RUNNING_MODAL'}
+        context.window_manager.progress_end()
+        # Restore global undo
+        bpy.context.preferences.edit.use_global_undo = self._undo_state
+        context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
+        return {'FINISHED'}
 
 
 class LIST_OT_LinkALLCollections(bpy.types.Operator):
     bl_idname = "object.link_all_collections"
     bl_label = "Link All Collections"
 
+    _indices_to_link = None
+    _step = 0
+    _total = 0
+    _undo_state = None
+
     @classmethod
     def poll(cls, context):
         return context.scene.linkable_collections
-    
-    def invoke(self, context, event):
-        # use the event parameter so invoke_confirm shows
-        return context.window_manager.invoke_confirm(
-            self,
-            event,
-            title='Proceed and link selected collection?',
-            message='Warning: This will overwrite mesh data of target objects.',
-            confirm_text='Link',
-            icon='WARNING',
-            )
-    
+
     def execute(self, context):
         linkable_collections = context.scene.linkable_collections
-        context.scene.lin_col_idx = 0
-        num_coll = len(linkable_collections)
+        self._indices_to_link = list(range(len(linkable_collections)))
+        self._indices_to_link.sort(reverse=True)
+        self._step = 0
+        self._total = len(self._indices_to_link)
+        # Disable global undo for speed
+        self._undo_state = bpy.context.preferences.edit.use_global_undo
+        bpy.context.preferences.edit.use_global_undo = False
+        context.window_manager.progress_begin(0, self._total)
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
-        # run the link operator in EXEC mode (no confirm) for batch processing
-        while linkable_collections:
-            bpy.ops.object.link_collections()
-            # the link operator now removes the current collection itself
-            context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
-        
-        self.report({'INFO'}, f'Linked {num_coll} collections')
+    def modal(self, context, event):
+        linkable_collections = context.scene.linkable_collections
+        if self._step < self._total:
+            idx = self._indices_to_link[self._step]
+            if idx < len(linkable_collections):
+                item = linkable_collections[idx]
+                objects = [bpy.data.objects[o.name] for o in list(item.objects)]
+                if objects:
+                    first_data = objects[0].data
+                    for obj in objects[1:]:
+                        obj.data = first_data
+                linkable_collections.remove(idx)
+            context.window_manager.progress_update(self._step)
+            self._step += 1
+            return {'RUNNING_MODAL'}
+        context.window_manager.progress_end()
+        # Restore global undo
+        bpy.context.preferences.edit.use_global_undo = self._undo_state
+        context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
+        self.report({'INFO'}, f'Linked {self._total} collections')
         return {'FINISHED'}
+
 
 class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
     """
@@ -189,16 +231,10 @@ class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
-
-        # Set Icon
         custom_icon = 'COLLECTION_COLOR_02'
-
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=f'{item.N_objects:4d}x   {item.name}', icon = custom_icon)
-
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label(text="", icon = custom_icon)
+        row = layout.row(align=True)
+        row.prop(item, 'selected', text="", emboss=True)
+        row.label(text=f'{item.N_objects:4d}x   {item.name}', icon=custom_icon)
 
 class UIListPanelLinkableCollection(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
@@ -336,7 +372,7 @@ class LinkCollections(bpy.types.Operator):
 
         # remove the linked collection now that linking is complete
         context.scene.linkable_collections.remove(index)
-        context.scene.lin_col_idx = min(max(0, index-1), len(context.scene.linkable_collections)-1)
+        context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(context.scene.linkable_collections)-1)
 
         return {'FINISHED'}
     

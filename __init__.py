@@ -5,7 +5,7 @@ import importlib
 
 module_names = (
     'selections',
-    'visualization',
+    'visualization_filtering',
     'cleanup',
     'filtering',
     'LinkObjData',

@@ -19,23 +19,29 @@ class CAD_VIS_HELPER_PT_Panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        active_metric = context.scene.cad_vis_active_metric
         # Visualization buttons
         row = layout.row(align=True)
-        row.operator('object.cad_color_by_depth', text='Depth', icon='GROUP')
-        row.operator('object.cad_color_by_polycount', text='Poly', icon='MESH_DATA')
-        row.operator('object.cad_color_by_bbox', text='BBox', icon='CUBE')
+        row.operator('object.cad_color_by_polycount', text='Poly', icon='MESH_DATA', depress=(active_metric == 'poly'))
+        row.operator('object.cad_color_by_depth', text='Depth', icon='GROUP', depress=(active_metric == 'depth'))
+        row.operator('object.cad_color_by_bbox', text='BBox', icon='CUBE', depress=(active_metric == 'bbox'))
+        row.operator('object.cad_restore_colors', text='Restore', icon='LOOP_BACK', emboss=True)
         row = layout.row(align=True)
         row.prop(context.scene, 'cad_vis_scope', text='Scope')
 
-        # Always-visible filter (stacked for clarity); Blender has no dual-handle range slider
+        # Filter Range panel
         filter_box = layout.box()
-        filter_box.label(text='Filter Range', icon='FILTER')
-        filter_box.prop(context.scene, 'cad_vis_filter_min', text='Min', slider=True)
-        filter_box.prop(context.scene, 'cad_vis_filter_max', text='Max', slider=True)
+        row = filter_box.row()
+        row.label(text='Filter Range', icon='FILTER')
+        row = filter_box.row()
+        row.prop(context.scene, 'do_filter', text='Filter', toggle=True)
+        row.prop(context.scene, 'do_highlight', text='Highlight', toggle=True)
+        slider_row = filter_box.column()
+        slider_row.enabled = context.scene.do_filter or context.scene.do_highlight
+        slider_row.prop(context.scene, 'cad_vis_filter_min', text='Min', slider=True)
+        slider_row.prop(context.scene, 'cad_vis_filter_max', text='Max', slider=True)
         filter_box.enabled = any(_METRIC_T_KEY in o for o in bpy.data.objects)
 
-        # Restore button
-        layout.operator('object.cad_restore_colors', text='Restore', icon='LOOP_BACK')
 
 class CAD_VIS_HELPER_PT_Options(bpy.types.Panel):
     bl_idname = 'CAD_VIS_HELPER_PT_Options'
@@ -53,6 +59,8 @@ class CAD_VIS_HELPER_PT_Options(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(context.scene, 'cad_vis_alpha_min', text='Alpha Min', slider=True)
         row.prop(context.scene, 'cad_vis_alpha_max', text='Max', slider=True)
+        # Highlight color picker
+        layout.prop(context.scene, 'cad_vis_highlight_color', text='Highlight Color')
 
 ##############################################################################
 # Utilities
@@ -240,6 +248,7 @@ class CAD_ColorByDepth(bpy.types.Operator):
         return bool(bpy.data.objects)
 
     def execute(self, context):
+        context.scene.cad_vis_active_metric = 'depth'
         # Reset alpha defaults each visualization
         context.scene.cad_vis_alpha_min = 0.25
         context.scene.cad_vis_alpha_max = 0.25
@@ -277,6 +286,7 @@ class CAD_ColorByPolycount(bpy.types.Operator):
         return any(o.type == 'MESH' for o in bpy.data.objects)
 
     def execute(self, context):
+        context.scene.cad_vis_active_metric = 'poly'
         context.scene.cad_vis_alpha_min = 0.25
         context.scene.cad_vis_alpha_max = 0.25
         context.scene.cad_vis_filter_min = 0.0
@@ -297,9 +307,9 @@ class CAD_ColorByPolycount(bpy.types.Operator):
 
 
 class CAD_ColorByBBox(bpy.types.Operator):
-    """Color objects by bounding box diagonal length (small -> large)."""
+    """Color objects by bounding box volume (small -> large)."""
     bl_idname = 'object.cad_color_by_bbox'
-    bl_label = 'Color by BBox Size'
+    bl_label = 'Color by BBox Volume'
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -312,6 +322,7 @@ class CAD_ColorByBBox(bpy.types.Operator):
         return bool(bpy.data.objects)
 
     def execute(self, context):
+        context.scene.cad_vis_active_metric = 'bbox'
         context.scene.cad_vis_alpha_min = 0.5
         context.scene.cad_vis_alpha_max = 0.5
         context.scene.cad_vis_filter_min = 0.0
@@ -324,10 +335,11 @@ class CAD_ColorByBBox(bpy.types.Operator):
         if not objs:
             shared_functions.report_info(self, 'No objects for bounding box metric')
             return {'CANCELLED'}
-        bbox_vals = {o: o.dimensions.length for o in objs}
+        # Use bounding box volume for metric
+        bbox_vals = {o: o.dimensions.x * o.dimensions.y * o.dimensions.z for o in objs}
         count = apply_metric_colors(objs, bbox_vals)
         ensure_object_color_viewports()
-        shared_functions.report_info(self, f'Colored {count} objects by bounding box size')
+        shared_functions.report_info(self, f'Colored {count} objects by bounding box volume')
         return {'FINISHED'}
 
 
@@ -344,6 +356,7 @@ class CAD_RestoreColors(bpy.types.Operator):
         return any(_BACKUP_KEY in o for o in bpy.data.objects)
 
     def execute(self, context):
+        context.scene.cad_vis_active_metric = ''
         restored = 0
         for o in bpy.data.objects:
             if _BACKUP_KEY in o:
@@ -359,7 +372,9 @@ class CAD_RestoreColors(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
+def _update_do_highlight(self, context):
+    # When highlight is toggled, re-apply filter selection to update colors
+    _apply_filter_selection(context)
 
 ##############################################################################
 # Registration
@@ -455,6 +470,32 @@ def register():
         subtype='PERCENTAGE',
         update=_update_filter_max
     )
+    bpy.types.Scene.do_filter = bpy.props.BoolProperty(
+        name='Filter',
+        description='Enable filter range selection',
+        default=False
+    )
+    bpy.types.Scene.do_highlight = bpy.props.BoolProperty(
+        name='Highlight',
+        description='Highlight filtered objects with custom color',
+        default=False,
+        update=_update_do_highlight
+    )
+    bpy.types.Scene.cad_vis_highlight_color = bpy.props.FloatVectorProperty(
+        name='Highlight Color',
+        description='Highlight color RGBA',
+        default=(1.0, 0.5, 0.0, 0.9),
+        min=0.0,
+        max=1.0,
+        size=4,
+        subtype='COLOR',
+        options={'ANIMATABLE'}
+    )
+    bpy.types.Scene.cad_vis_active_metric = bpy.props.StringProperty(
+        name='Active Metric',
+        description='Currently displayed metric',
+        default=''
+    )
 
     def _update_colormap(self, context):
         cm = context.scene.cad_vis_colormap
@@ -480,27 +521,53 @@ def register():
 
 def _apply_filter_selection(context):
     """Apply selection filter based on stored metric_t values."""
+    if not (getattr(context.scene, 'do_filter', False) or getattr(context.scene, 'do_highlight', False)):
+        return
     min_t = context.scene.cad_vis_filter_min / 100.0
     max_t = context.scene.cad_vis_filter_max / 100.0
-    
-    # Find all objects with stored metric_t values
-    visualized = [o for o in bpy.data.objects if _METRIC_T_KEY in o]
+    allowed_types = {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'VOLUME'}
+    visualized = [o for o in bpy.data.objects if _METRIC_T_KEY in o and o.type in allowed_types and hasattr(o, 'dimensions') and (o.dimensions.x * o.dimensions.y * o.dimensions.z) > 0]
     if not visualized:
         return
-    
-    # Clear all selections first
-    for o in context.view_layer.objects:
-        o.select_set(False)
-    
-    # Select objects within range
+    # Only clear selections if filter is active
+    do_filter = getattr(context.scene, 'do_filter', False)
+    highlight = getattr(context.scene, 'do_highlight', False)
+    highlight_color = getattr(context.scene, 'cad_vis_highlight_color', (1.0, 0.5, 0.0, 0.9))
+    colormap = getattr(context.scene, 'cad_vis_colormap', 'jet')
+    alpha_min = getattr(context.scene, 'cad_vis_alpha_min', 1.0)
+    alpha_max = getattr(context.scene, 'cad_vis_alpha_max', 1.0)
+    if do_filter:
+        # Clear all selections first
+        for o in context.view_layer.objects:
+            o.select_set(False)
     for o in visualized:
         t = o[_METRIC_T_KEY]
-        if min_t <= t <= max_t:
+        in_range = min_t <= t <= max_t
+        if do_filter and in_range:
             try:
                 o.select_set(True)
+                if hasattr(o, 'color'):
+                    if highlight:
+                        o.color = highlight_color
+                    else:
+                        r, g, b = get_colormap_color(colormap, t)
+                        alpha = alpha_min + t * (alpha_max - alpha_min)
+                        o.color = (r, g, b, alpha)
             except Exception:
                 pass
-
+        elif highlight and in_range and not do_filter:
+            try:
+                # Only change color, do not select
+                if hasattr(o, 'color'):
+                    o.color = highlight_color
+            except Exception:
+                pass
+        else:
+            # Restore colormap color for objects outside filter/highlight
+            if hasattr(o, 'color'):
+                r, g, b = get_colormap_color(colormap, t)
+                alpha = alpha_min + t * (alpha_max - alpha_min)
+                o.color = (r, g, b, alpha)
 
 def unregister():
     for c in reversed(classes):
@@ -520,3 +587,7 @@ def unregister():
         del bpy.types.Scene.cad_vis_filter_max
     if hasattr(bpy.types.Scene, 'cad_vis_colormap'):
         del bpy.types.Scene.cad_vis_colormap
+    if hasattr(bpy.types.Scene, 'do_filter'):
+        del bpy.types.Scene.do_filter
+    if hasattr(bpy.types.Scene, 'cad_vis_active_metric'):
+        del bpy.types.Scene.cad_vis_active_metric
