@@ -175,15 +175,9 @@ class LIST_OT_LinkCollection(bpy.types.Operator):
         self._indices_to_link.sort(reverse=True)
         self._step = 0
         self._total = len(self._indices_to_link)
-        # Disable global undo for speed
-        self._undo_state = bpy.context.preferences.edit.use_global_undo
-        bpy.context.preferences.edit.use_global_undo = False
-        try:
-            context.window_manager.progress_begin(0, self._total)
-            context.window_manager.modal_handler_add(self)
-            return {'RUNNING_MODAL'}
-        finally:
-            bpy.context.preferences.edit.use_global_undo = self._undo_state
+        context.window_manager.progress_begin(0, self._total)
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
         linkable_collections = context.scene.linkable_collections
@@ -219,29 +213,23 @@ class LIST_OT_LinkALLCollections(bpy.types.Operator):
         indices_to_link = list(range(len(linkable_collections)))
         indices_to_link.sort(reverse=True)
         total = len(indices_to_link)
-        # Disable global undo for speed
-        undo_state = bpy.context.preferences.edit.use_global_undo
-        bpy.context.preferences.edit.use_global_undo = False
-        try:
-            context.window_manager.progress_begin(0, total)
-            linked_count = 0
-            for step, idx in enumerate(indices_to_link):
-                if idx < len(linkable_collections):
-                    item = linkable_collections[idx]
-                    objects = [bpy.data.objects[o.name] for o in list(item.objects)]
-                    if objects:
-                        first_data = objects[0].data
-                        for obj in objects[1:]:
-                            obj.data = first_data
-                    linkable_collections.remove(idx)
-                    linked_count += 1
-                context.window_manager.progress_update(step)
-            context.window_manager.progress_end()
-            context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
-            self.report({'INFO'}, f'Linked {linked_count} collections')
-            return {'FINISHED'}
-        finally:
-            bpy.context.preferences.edit.use_global_undo = undo_state
+        context.window_manager.progress_begin(0, total)
+        linked_count = 0
+        for step, idx in enumerate(indices_to_link):
+            if idx < len(linkable_collections):
+                item = linkable_collections[idx]
+                objects = [bpy.data.objects[o.name] for o in list(item.objects)]
+                if objects:
+                    first_data = objects[0].data
+                    for obj in objects[1:]:
+                        obj.data = first_data
+                linkable_collections.remove(idx)
+                linked_count += 1
+            context.window_manager.progress_update(step)
+        context.window_manager.progress_end()
+        context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(linkable_collections)-1)
+        self.report({'INFO'}, f'Linked {linked_count} collections')
+        return {'FINISHED'}
 
 
 class LINKABLE_COLLECTION_UL_LIST(bpy.types.UIList):
