@@ -21,13 +21,22 @@ def get_object_metrics(ob):
     xs = [v[0] for v in bbox]
     ys = [v[1] for v in bbox]
     zs = [v[2] for v in bbox]
-    x_len = max(xs) - min(xs)
-    y_len = max(ys) - min(ys)
-    z_len = max(zs) - min(zs)
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+    z_min, z_max = min(zs), max(zs)
+    x_len = x_max - x_min
+    y_len = y_max - y_min
+    z_len = z_max - z_min
     volume = x_len * y_len * z_len
     surface = sum(f.area for f in mesh.polygons)
     return {
         'vertex_count': v_count,
+        'x_min': x_min,
+        'x_max': x_max,
+        'y_min': y_min,
+        'y_max': y_max,
+        'z_min': z_min,
+        'z_max': z_max,
         'x_len': x_len,
         'y_len': y_len,
         'z_len': z_len,
@@ -59,11 +68,14 @@ def summarize_and_bin_objects(objects, scene):
             avg = b['avg']
             if (
                 abs(metrics['vertex_count'] - avg['vertex_count']) <= tol_vertex * avg['vertex_count'] and
-                abs(metrics['x_len'] - avg['x_len']) <= tol_axes * avg['x_len'] and
-                abs(metrics['y_len'] - avg['y_len']) <= tol_axes * avg['y_len'] and
-                abs(metrics['z_len'] - avg['z_len']) <= tol_axes * avg['z_len'] and
-                abs(metrics['surface'] - avg['surface']) <= tol_surface * avg['surface'] and
-                abs(metrics['volume'] - avg['volume']) <= tol_volume * avg['volume']
+                abs(metrics['x_min'] - avg['x_min']) <= tol_axes * max(abs(avg['x_min']), 1e-8) and
+                abs(metrics['x_max'] - avg['x_max']) <= tol_axes * max(abs(avg['x_max']), 1e-8) and
+                abs(metrics['y_min'] - avg['y_min']) <= tol_axes * max(abs(avg['y_min']), 1e-8) and
+                abs(metrics['y_max'] - avg['y_max']) <= tol_axes * max(abs(avg['y_max']), 1e-8) and
+                abs(metrics['z_min'] - avg['z_min']) <= tol_axes * max(abs(avg['z_min']), 1e-8) and
+                abs(metrics['z_max'] - avg['z_max']) <= tol_axes * max(abs(avg['z_max']), 1e-8) and
+                abs(metrics['surface'] - avg['surface']) <= tol_surface * max(abs(avg['surface']), 1e-8) and
+                abs(metrics['volume'] - avg['volume']) <= tol_volume * max(abs(avg['volume']), 1e-8)
             ):
                 found_bin = b
                 break
@@ -75,6 +87,23 @@ def summarize_and_bin_objects(objects, scene):
         else:
             bins.append({'objects': [ob], 'avg': metrics.copy()})
     bins = [b for b in bins if len(b['objects']) > 1]
+    # Discard bins where all objects already share the same mesh data (already linked)
+    def all_linked(bin_objs):
+        mesh_datas = set(obj.data for obj in bin_objs)
+        print(mesh_datas)
+        return len(mesh_datas) == 1
+
+    bins = [b for b in bins if not all_linked(b['objects'])]
+    print(bins)
+    # Discard bins where all objects already share the same mesh data (already linked)
+    def all_linked(bin_objs):
+        if len(bin_objs) < 2:
+            return False
+        mesh_datas = set(obj.data for obj in bin_objs)
+        print(mesh_datas)
+        return len(mesh_datas) == 1
+
+    bins = [b for b in bins if not all_linked(b['objects'])]
     bins.sort(key=lambda b: len(b['objects']), reverse=True)
     # Populate linkable_collections with bins
     scene.linkable_collections.clear()
@@ -299,74 +328,7 @@ class RefreshLinkableCollection(bpy.types.Operator):
         
         return {'FINISHED'}
 
-def debug_object_metrics(objects):
-    print("--- CAD Helper Object Metrics Debug (Summary) ---")
-    metrics = []
-    wm = bpy.context.window_manager
-    total = len(objects)
-    wm.progress_begin(0, total)
-    for idx, ob in enumerate(objects):
-        wm.progress_update(idx)
-        if ob.type != 'MESH':
-            continue
-        mesh = ob.data
-        v_count = len(mesh.vertices)
-        bbox = ob.bound_box
-        xs = [v[0] for v in bbox]
-        ys = [v[1] for v in bbox]
-        zs = [v[2] for v in bbox]
-        x_len = max(xs) - min(xs)
-        y_len = max(ys) - min(ys)
-        z_len = max(zs) - min(zs)
-        volume = x_len * y_len * z_len
-        surface = sum(f.area for f in mesh.polygons)
-        metrics.append((v_count, x_len, y_len, z_len, volume, surface))
-        percent = int((idx + 1) / total * 100) if total else 100
-        print(f"Progress: {percent}%", end='\r')
-    wm.progress_end()
-    print()
-    if not metrics:
-        print("No mesh objects found.")
-        return
-    import statistics
-    v_counts = [m[0] for m in metrics]
-    x_lens = [m[1] for m in metrics]
-    y_lens = [m[2] for m in metrics]
-    z_lens = [m[3] for m in metrics]
-    volumes = [m[4] for m in metrics]
-    surfaces = [m[5] for m in metrics]
-    print(f"Total mesh objects: {len(metrics)}")
-    print(f"Vertex count: min={min(v_counts)}, max={max(v_counts)}, mean={statistics.mean(v_counts):.2f}, stdev={statistics.stdev(v_counts):.2f}")
-    print(f"X axis: min={min(x_lens):.4f}, max={max(x_lens):.4f}, mean={statistics.mean(x_lens):.4f}, stdev={statistics.stdev(x_lens):.4f}")
-    print(f"Y axis: min={min(y_lens):.4f}, max={max(y_lens):.4f}, mean={statistics.mean(y_lens):.4f}, stdev={statistics.stdev(y_lens):.4f}")
-    print(f"Z axis: min={min(z_lens):.4f}, max={max(z_lens):.4f}, mean={statistics.mean(z_lens):.4f}, stdev={statistics.stdev(z_lens):.4f}")
-    print(f"Bounding box volume: min={min(volumes):.4f}, max={max(volumes):.4f}, mean={statistics.mean(volumes):.4f}, stdev={statistics.stdev(volumes):.4f}")
-    print(f"Face surface area: min={min(surfaces):.4f}, max={max(surfaces):.4f}, mean={statistics.mean(surfaces):.4f}, stdev={statistics.stdev(surfaces):.4f}")
-    print("--- End Debug Summary ---")
 
-class LinkCollections(bpy.types.Operator):
-    bl_idname = "object.link_collections"
-    bl_label = "Link Collections"
-
-    def execute(self, context):
-        linkable_collections = context.scene.linkable_collections
-        index = context.scene.lin_col_idx
-
-        self.report({'INFO'}, f"Linking... '{linkable_collections[index].name}'")
-
-        objects = [bpy.data.objects[o.name] for o in list(linkable_collections[index].objects)]
-
-        first_object = objects.pop(0)
-
-        for obj in objects:
-            obj.data = first_object.data
-
-        # remove the linked collection now that linking is complete
-        context.scene.linkable_collections.remove(index)
-        context.scene.lin_col_idx = min(max(0, context.scene.lin_col_idx-1), len(context.scene.linkable_collections)-1)
-
-        return {'FINISHED'}
-    
 ##############################################################################
 # Add-On Handling
 ##############################################################################
@@ -376,7 +338,6 @@ classes = (
     LINKABLE_COLLECTION_UL_LIST,
     UIListPanelLinkableCollection,
     InstanceDetectionTolerancesPanel,
-    LinkCollections,
     LIST_OT_LinkALLCollections,
     LIST_OT_SelectCollection,
     LIST_OT_LinkCollection,
@@ -430,6 +391,9 @@ def get_object_metrics(ob):
     xs = [v[0] for v in bbox]
     ys = [v[1] for v in bbox]
     zs = [v[2] for v in bbox]
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+    z_min, z_max = min(zs), max(zs)
     x_len = max(xs) - min(xs)
     y_len = max(ys) - min(ys)
     z_len = max(zs) - min(zs)
@@ -437,9 +401,12 @@ def get_object_metrics(ob):
     surface = sum(f.area for f in mesh.polygons)
     return {
         'vertex_count': v_count,
-        'x_len': x_len,
-        'y_len': y_len,
-        'z_len': z_len,
+        'x_min': x_min,
+        'x_max': x_max,
+        'y_min': y_min,
+        'y_max': y_max,
+        'z_min': z_min,
+        'z_max': z_max,
         'volume': volume,
         'surface': surface
     }
@@ -468,11 +435,14 @@ def summarize_and_bin_objects(objects, scene):
             avg = b['avg']
             if (
                 abs(metrics['vertex_count'] - avg['vertex_count']) <= tol_vertex * avg['vertex_count'] and
-                abs(metrics['x_len'] - avg['x_len']) <= tol_axes * avg['x_len'] and
-                abs(metrics['y_len'] - avg['y_len']) <= tol_axes * avg['y_len'] and
-                abs(metrics['z_len'] - avg['z_len']) <= tol_axes * avg['z_len'] and
-                abs(metrics['surface'] - avg['surface']) <= tol_surface * avg['surface'] and
-                abs(metrics['volume'] - avg['volume']) <= tol_volume * avg['volume']
+                abs(metrics['x_min'] - avg['x_min']) <= tol_axes * max(abs(avg['x_min']), 1e-8) and
+                abs(metrics['x_max'] - avg['x_max']) <= tol_axes * max(abs(avg['x_max']), 1e-8) and
+                abs(metrics['y_min'] - avg['y_min']) <= tol_axes * max(abs(avg['y_min']), 1e-8) and
+                abs(metrics['y_max'] - avg['y_max']) <= tol_axes * max(abs(avg['y_max']), 1e-8) and
+                abs(metrics['z_min'] - avg['z_min']) <= tol_axes * max(abs(avg['z_min']), 1e-8) and
+                abs(metrics['z_max'] - avg['z_max']) <= tol_axes * max(abs(avg['z_max']), 1e-8) and
+                abs(metrics['surface'] - avg['surface']) <= tol_surface * max(abs(avg['surface']), 1e-8) and
+                abs(metrics['volume'] - avg['volume']) <= tol_volume * max(abs(avg['volume']), 1e-8)
             ):
                 found_bin = b
                 break
@@ -484,6 +454,14 @@ def summarize_and_bin_objects(objects, scene):
         else:
             bins.append({'objects': [ob], 'avg': metrics.copy()})
     bins = [b for b in bins if len(b['objects']) > 1]
+    # Discard bins where all objects already share the same mesh data (already linked)
+    def all_linked(bin_objs):
+        if len(bin_objs) < 2:
+            return False
+        mesh_datas = set(obj.data for obj in bin_objs)
+        return len(mesh_datas) == 1
+
+    bins = [b for b in bins if not all_linked(b['objects'])]
     bins.sort(key=lambda b: len(b['objects']), reverse=True)
     # Populate linkable_collections with bins
     scene.linkable_collections.clear()

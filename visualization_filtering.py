@@ -74,6 +74,7 @@ _DEF_SCOPE_ITEMS = [
     ('SCENE', 'Scene', 'Use all objects in the scene'),
 ]
 
+
 _DEF_SCALE_ITEMS = [
     ('RANKED', 'Ranked', 'Percentile-based (even distribution)'),
     ('LINEAR', 'Linear', 'Absolute value scaling'),
@@ -81,6 +82,9 @@ _DEF_SCALE_ITEMS = [
 
 _ALGO_COLORMAPS = {'jet', 'turbo', 'cubehelix'}
 _COLORMAP_CACHE = None
+
+# Module-level cache for previous viewport shading state
+_PREV_SHADING_CACHE = None
 
 def _load_colormap_file():
     global _COLORMAP_CACHE
@@ -150,13 +154,41 @@ def get_colormap_color(name: str, t: float):
     r, g, b = colorsys.hsv_to_rgb(t, 1.0, 1.0)
     return (r, g, b)
 
-def ensure_object_color_viewports():
-    """Switch all 3D viewports to OBJECT color mode so Object.color shows."""
+def _get_viewport_shading_state():
+    """Return a dict of window/area/space to their current shading type and color_type."""
+    state = {}
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
             if area.type == 'VIEW_3D':
                 for space in area.spaces:
                     if space.type == 'VIEW_3D':
+                        state[(window.as_pointer(), area.as_pointer(), space.as_pointer())] = (
+                            space.shading.type, space.shading.color_type)
+    return state
+
+def _set_viewport_shading_state(state):
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        key = (window.as_pointer(), area.as_pointer(), space.as_pointer())
+                        if key in state:
+                            shading_type, color_type = state[key]
+                            space.shading.type = shading_type
+                            space.shading.color_type = color_type
+
+def ensure_object_color_viewports(store_previous=True):
+    """Switch all 3D viewports to OBJECT color mode so Object.color shows. Optionally store previous state."""
+    global _PREV_SHADING_CACHE
+    if store_previous:
+        _PREV_SHADING_CACHE = _get_viewport_shading_state()
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        space.shading.type = 'SOLID'
                         space.shading.color_type = 'OBJECT'
 
 
@@ -265,7 +297,7 @@ class CAD_ColorByDepth(bpy.types.Operator):
             return {'CANCELLED'}
         depths = {o: hierarchy_depth(o) for o in objs}
         count = apply_metric_colors(objs, depths)
-        ensure_object_color_viewports()
+        ensure_object_color_viewports(store_previous=True)
         shared_functions.report_info(self, f'Colored {count} objects by depth')
         return {'FINISHED'}
 
@@ -301,7 +333,7 @@ class CAD_ColorByPolycount(bpy.types.Operator):
             return {'CANCELLED'}
         polycounts = {o: len(o.data.polygons) for o in objs}
         count = apply_metric_colors(objs, polycounts)
-        ensure_object_color_viewports()
+        ensure_object_color_viewports(store_previous=True)
         shared_functions.report_info(self, f'Colored {count} mesh objects by polycount')
         return {'FINISHED'}
 
@@ -338,7 +370,7 @@ class CAD_ColorByBBox(bpy.types.Operator):
         # Use bounding box volume for metric
         bbox_vals = {o: o.dimensions.x * o.dimensions.y * o.dimensions.z for o in objs}
         count = apply_metric_colors(objs, bbox_vals)
-        ensure_object_color_viewports()
+        ensure_object_color_viewports(store_previous=True)
         shared_functions.report_info(self, f'Colored {count} objects by bounding box volume')
         return {'FINISHED'}
 
@@ -368,13 +400,31 @@ class CAD_RestoreColors(bpy.types.Operator):
                 restored += 1
             if _METRIC_T_KEY in o:
                 del o[_METRIC_T_KEY]
+        # Restore previous shading if stored
+        global _PREV_SHADING_CACHE
+        if _PREV_SHADING_CACHE:
+            _set_viewport_shading_state(_PREV_SHADING_CACHE)
+            _PREV_SHADING_CACHE = None
         shared_functions.report_info(self, f'Restored {restored} objects')
         return {'FINISHED'}
 
 
 def _update_do_highlight(self, context):
     # When highlight is toggled, re-apply filter selection to update colors
-    _apply_filter_selection(context)
+    if not getattr(context.scene, 'do_highlight', False):
+        # Restore colormap for all visualized objects
+        allowed_types = {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'VOLUME'}
+        colormap = getattr(context.scene, 'cad_vis_colormap', 'jet')
+        alpha_min = getattr(context.scene, 'cad_vis_alpha_min', 1.0)
+        alpha_max = getattr(context.scene, 'cad_vis_alpha_max', 1.0)
+        for o in bpy.data.objects:
+            if _METRIC_T_KEY in o and o.type in allowed_types and hasattr(o, 'color'):
+                t = o[_METRIC_T_KEY]
+                r, g, b = get_colormap_color(colormap, t)
+                alpha = alpha_min + t * (alpha_max - alpha_min)
+                o.color = (r, g, b, alpha)
+    else:
+        _apply_filter_selection(context)
 
 ##############################################################################
 # Registration
@@ -484,7 +534,7 @@ def register():
     bpy.types.Scene.cad_vis_highlight_color = bpy.props.FloatVectorProperty(
         name='Highlight Color',
         description='Highlight color RGBA',
-        default=(1.0, 0.5, 0.0, 0.9),
+        default=(0.0, 1.0, 0.0, 0.9),
         min=0.0,
         max=1.0,
         size=4,
