@@ -17,6 +17,7 @@ class CAD_VIS_HELPER_PT_Panel(bpy.types.Panel):
     bl_context = 'objectmode'
     bl_options = {'DEFAULT_CLOSED'}
 
+
     def draw(self, context):
         layout = self.layout
         active_metric = context.scene.cad_vis_active_metric
@@ -449,9 +450,15 @@ def register():
         default='SELECTION'
     )
     def _update_scale_mode(self, context):
-        # Switching scale mode requires full recomputation - just store for next operator run
-        # Cannot recolor here as we don't have the original values dict
-        pass
+        # Immediately re-apply the current metric coloring when scale mode changes
+        metric = getattr(context.scene, 'cad_vis_active_metric', '')
+        if metric == 'poly':
+            bpy.ops.object.cad_color_by_polycount()
+        elif metric == 'depth':
+            bpy.ops.object.cad_color_by_depth()
+        elif metric == 'bbox':
+            bpy.ops.object.cad_color_by_bbox()
+        # else: do nothing if no metric is active
     bpy.types.Scene.cad_vis_scale_mode = bpy.props.EnumProperty(
         name='Scale Mode',
         items=_DEF_SCALE_ITEMS,
