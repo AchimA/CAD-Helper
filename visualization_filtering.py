@@ -296,7 +296,7 @@ class CAD_ToggleMetric(bpy.types.Operator):
     """Toggle a visualization metric. Clicking an active metric resets the view."""
     bl_idname = 'object.cad_toggle_metric'
     bl_label = 'Toggle CAD Metric'
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
     metric: bpy.props.EnumProperty(
         name='Metric',
