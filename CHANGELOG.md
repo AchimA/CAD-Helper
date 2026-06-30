@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+- Removed automatic Outliner sync via depsgraph handler from Selection Helper.
+- Removed related Selection Helper sync option to comply with extension review guidance.
+
 ## [0.7.0] - 2025-11-20
 ### Added
 - External `colormaps.json` with dynamic loading and caching.

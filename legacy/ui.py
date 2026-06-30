@@ -1,9 +1,12 @@
 # GPL-3.0 license
+
 import bpy
-from . import shared_functions
+
+global linkable_objects
+linkable_objects = {}
 
 ##############################################################################
-# Panel
+# Panels
 ##############################################################################
 
 class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
@@ -30,7 +33,7 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
         op.extend=True
         op = grid.operator(
             'object.select_hierarchy',
-            text='Extend Selection to Children',
+            text='Extend Selection to Chilren',
             icon='TRIA_DOWN_BAR'
             )
         op.direction='CHILD'
@@ -61,54 +64,78 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
             icon='FILTER'
             )
 
-##############################################################################
-# Operators
-##############################################################################
+class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'
+    bl_label = 'CAD Clean-Up Helper'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
 
-class SelectAllChildren(bpy.types.Operator):
-    """Select all children recursively of the current selection"""
-    bl_idname = "object.select_all_children"
-    bl_label = "Select All Children Recursively"
-    bl_options = {"REGISTER", "UNDO"}
+    def draw(self, context):
+        layout = self.layout
 
-    # Use Blender's recommended annotation style so the property is registered correctly
-    extend: bpy.props.BoolProperty(
-        name="Extend",
-        description="Don't deselect existing selection",
-        default=False
-    )
+        # Clean-Up
+        box = layout.box()
+        box.label(text='Clean-Up')
+        box.operator(
+            'object.delete_and_reparent_children',
+            icon='SNAP_PEEL_OBJECT'
+            )
+        box.operator(
+            'object.delete_child_empties_without_children',
+            icon='OUTLINER_DATA_EMPTY'
+        )
+        box.operator(
+            'object.flatten_and_join_hierarchy',
+            icon='CON_CHILDOF'
+        )
 
-    @classmethod
-    def poll(cls, context):
-        return bool(context.selected_objects)
+        # Empties
+        box = layout.box()
+        box.label(text='Empties')
+        box.operator(
+            'object.norm_empty_size',
+            icon='EMPTY_DATA'
+            )
+        box.operator(
+            'object.center_empties_to_children',
+            icon='ANCHOR_CENTER'
+            )
 
-    def execute(self, context):
-        roots = list(context.selected_objects)
-        if not roots:
-            shared_functions.report_info(self, "No selection")
-            return {'CANCELLED'}
+class CAD_MAT_HELPER_PT_Panel(bpy.types.Panel):
+    bl_idname = 'CAD_MAT_HELPER_PT_Panel'
+    bl_label = '[Exp.] CAD Material Helper'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+    bl_options = {'DEFAULT_CLOSED'}
 
-        # collect children (use set to avoid duplicates)
-        sel_children = set()
-        for r in roots:
-            sel_children.update(r.children_recursive)
+    def draw(self, context):
+        layout = self.layout
 
-        if not sel_children:
-            shared_functions.report_info(self, "No children found")
-            return {'CANCELLED'}
+        box = layout.box()
+        box.label(text='Transfer Material Properties')
+        box.operator(
+            'object.transfer_nodes_to_vp',
+            icon='TRIA_RIGHT'
+            )
+        box.operator(
+            'object.transfer_vp_to_nodes',
+            icon='TRIA_LEFT'
+            )
 
-        # if not extending, deselect current selection first
-        if not self.extend:
-            for o in list(context.selected_objects):
-                o.select_set(False)
-
-        # select all collected children and set one active
-        for i, o in enumerate(sel_children):
-            o.select_set(True)
-            if i == 0:
-                context.view_layer.objects.active = o
-
-        return {'FINISHED'}
+        box = layout.box()
+        box.label(text='Clean-Up Materials')
+        box.operator(
+            'object.clear_vp_display',
+            icon='LOOP_BACK'
+            )
+        box.operator(
+            'object.cleanup_duplicate_materials',
+            icon='MATERIAL'
+            )
 
 
 ##############################################################################
@@ -116,7 +143,8 @@ class SelectAllChildren(bpy.types.Operator):
 ##############################################################################
 classes = (
     CAD_SEL_HELPER_PT_Panel,
-    SelectAllChildren,
+    CAD_CLEAN_HELPER_PT_Panel,
+    CAD_MAT_HELPER_PT_Panel,
 )
 
 def register():
