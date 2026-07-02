@@ -1,7 +1,9 @@
 # GPL-3.0 license
 import bpy
+import bmesh
 import mathutils
 import math
+import time
 from . import shared_functions
 
 ##############################################################################
@@ -30,7 +32,7 @@ class CAD_CLEAN_HELPER_PT_Cleanup(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
     bl_context = 'objectmode'
-    bl_options = {'DEFAULT_OPEN'}
+    # bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -64,7 +66,7 @@ class CAD_CLEAN_HELPER_PT_Empties(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
     bl_context = 'objectmode'
-    bl_options = {'DEFAULT_OPEN'}
+    # bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -88,7 +90,7 @@ class CAD_CLEAN_HELPER_PT_MeshCleanup(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
     bl_context = 'objectmode'
-    bl_options = {'DEFAULT_OPEN'}
+    # bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -378,37 +380,94 @@ class CleanupSelectedMeshes(bpy.types.Operator):
     bl_label = 'Clean Selected Meshes'
     bl_options = {'REGISTER', 'UNDO'}
 
+    _init_selection = None
+    _init_active = None
+    _init_mode = None
+    _all_mesh_objects = None
+    _mesh_instances_map = None
+    _selected_mesh_total = 0
+    _mesh_objects = None
+    _index = 0
+    _total = 0
+    _processed = 0
+    _shared_skipped = 0
+    _disabled_weighted_count = 0
+    _op_clear = True
+    _op_merge = False
+    _op_recalc = False
+    _op_smooth = False
+    _smooth_angle = 0.0
+    _merge_dist = 0.0
+    _timer = None
+    _wm_progress_open = False
+    _cursor_wait_set = False
+    _cursor_modal_set = False
+    _report_interval = 10
+    _last_reported_index = 0
+    _weighted_normals_disabled_objects = None
+    _batch_size = 4
+    _batch_min = 2
+    _batch_max = 8
+    _batch_target_seconds = 0.1
+    _current_active_obj = None
+
     @classmethod
     def poll(cls, context):
         return any(obj.type == 'MESH' for obj in context.selected_objects)
 
     def execute(self, context):
-        init_selection = list(context.selected_objects)
-        init_active = context.view_layer.objects.active
-        init_mode = context.mode
+        self._init_selection = list(context.selected_objects)
+        self._init_active = context.view_layer.objects.active
+        self._init_mode = context.mode
 
-        mesh_objects = [obj for obj in init_selection if obj.type == 'MESH']
-        if not mesh_objects:
+        self._all_mesh_objects = [obj for obj in self._init_selection if obj.type == 'MESH']
+        if not self._all_mesh_objects:
             self.report({'INFO'}, 'No mesh objects selected')
             return {'CANCELLED'}
+        self._selected_mesh_total = len(self._all_mesh_objects)
+
+        # Deduplicate by mesh datablock so linked instances are not reprocessed.
+        unique_mesh_objects = []
+        self._mesh_instances_map = {}
+        seen_mesh_data = set()
+        for obj in self._all_mesh_objects:
+            mesh = getattr(obj, 'data', None)
+            if mesh is None:
+                continue
+            mesh_key = mesh.as_pointer()
+            self._mesh_instances_map.setdefault(mesh_key, []).append(obj)
+            if mesh_key in seen_mesh_data:
+                continue
+            seen_mesh_data.add(mesh_key)
+            unique_mesh_objects.append(obj)
+
+        self._mesh_objects = unique_mesh_objects
+        self._shared_skipped = max(0, len(self._all_mesh_objects) - len(self._mesh_objects))
 
         settings = context.scene
-        op_clear = settings.cad_cleanup_use_clear_split_normals
-        op_merge = settings.cad_cleanup_use_merge_by_distance
-        op_recalc = settings.cad_cleanup_use_recalc_normals
-        op_smooth = settings.cad_cleanup_use_shade_smooth
-        smooth_angle = settings.cad_cleanup_auto_smooth_angle
-        merge_dist = settings.cad_cleanup_merge_distance
+        self._op_clear = settings.cad_cleanup_use_clear_split_normals
+        self._op_merge = settings.cad_cleanup_use_merge_by_distance
+        self._op_recalc = settings.cad_cleanup_use_recalc_normals
+        self._op_smooth = settings.cad_cleanup_use_shade_smooth
+        self._smooth_angle = settings.cad_cleanup_auto_smooth_angle
+        self._merge_dist = settings.cad_cleanup_merge_distance
 
         # Always clear split normals in auto-smooth strategy to avoid stale custom data.
         effective_clear = True
 
-        if not (effective_clear or op_merge or op_recalc or op_smooth):
+        if not (effective_clear or self._op_merge or self._op_recalc or self._op_smooth):
             self.report({'INFO'}, 'No mesh cleanup operations enabled')
             return {'CANCELLED'}
 
-        processed = 0
-        disabled_weighted_count = 0
+        self._index = 0
+        self._total = len(self._mesh_objects)
+        self._processed = 0
+        self._shared_skipped = max(0, len(self._all_mesh_objects) - self._total)
+        self._disabled_weighted_count = 0
+        self._last_reported_index = 0
+        self._weighted_normals_disabled_objects = []
+        self._batch_size = 5
+        self._current_active_obj = None
 
         # Start from object mode to avoid mode conflicts while switching objects.
         try:
@@ -417,59 +476,215 @@ class CleanupSelectedMeshes(bpy.types.Operator):
         except Exception:
             pass
 
+        # Deselect once so per-object activation can switch targets cheaply.
         try:
-            for obj in mesh_objects:
-                if obj.name not in context.view_layer.objects:
+            bpy.ops.object.select_all(action='DESELECT')
+        except Exception:
+            for scene_obj in context.view_layer.objects:
+                scene_obj.select_set(False)
+
+        # Disable weighted normal modifiers on all selected mesh objects once.
+        for obj in self._all_mesh_objects:
+            disabled_count = self._set_weighted_normal_modifiers_enabled(obj, enabled=False)
+            self._disabled_weighted_count += disabled_count
+            if disabled_count > 0:
+                self._weighted_normals_disabled_objects.append(obj)
+
+        wm = context.window_manager
+        wm.progress_begin(0, self._total)
+        self._wm_progress_open = True
+        if context.window is None:
+            # Fallback for non-UI execution contexts where modal timers are unavailable.
+            try:
+                while self._index < self._total:
+                    obj = self._mesh_objects[self._index]
+                    if self._process_one(context, obj):
+                        self._processed += 1
+                    self._index += 1
+                    wm.progress_update(self._index)
+            except Exception as exc:
+                self._finish(context, cancelled=True)
+                self.report({'ERROR'}, f'Mesh cleanup failed: {exc}')
+                return {'CANCELLED'}
+
+            self._finish(context, cancelled=False)
+            return {'FINISHED'}
+
+        # Slightly lower tick rate keeps UI responsive and reduces cursor jitter.
+        self._timer = wm.event_timer_add(0.05, window=context.window)
+        self._set_wait_cursor(context)
+        wm.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        if event.type in {'ESC', 'RIGHTMOUSE'}:
+            self._finish(context, cancelled=True)
+            self.report({'WARNING'}, 'Mesh cleanup cancelled')
+            return {'CANCELLED'}
+
+        if event.type != 'TIMER':
+            return {'PASS_THROUGH'}
+
+        if self._index >= self._total:
+            self._finish(context, cancelled=False)
+            return {'FINISHED'}
+
+        tick_start = time.perf_counter()
+        batch_processed = 0
+        current_batch_size = self._batch_size
+
+        while self._index < self._total and batch_processed < current_batch_size:
+            try:
+                obj = self._mesh_objects[self._index]
+                if self._process_one(context, obj):
+                    self._processed += 1
+            except Exception as exc:
+                self._finish(context, cancelled=True)
+                self.report({'ERROR'}, f'Mesh cleanup failed: {exc}')
+                return {'CANCELLED'}
+
+            self._index += 1
+            batch_processed += 1
+
+            elapsed = time.perf_counter() - tick_start
+            if batch_processed >= self._batch_min and elapsed >= self._batch_target_seconds:
+                break
+
+        elapsed = time.perf_counter() - tick_start
+        if elapsed < (self._batch_target_seconds * 0.7) and batch_processed >= current_batch_size:
+            self._batch_size = min(self._batch_max, self._batch_size + 1)
+        elif elapsed > (self._batch_target_seconds * 1.3):
+            self._batch_size = max(self._batch_min, self._batch_size - 1)
+
+        if self._wm_progress_open:
+            context.window_manager.progress_update(self._index)
+        if self._report_interval > 0 and (self._index - self._last_reported_index) >= self._report_interval:
+            self.report({'INFO'}, f'Cleaning meshes: {self._index}/{self._total}')
+            self._last_reported_index = self._index
+            self._tag_view3d_redraw(context)
+
+        return {'RUNNING_MODAL'}
+
+    def _process_one(self, context, obj):
+        if obj.name not in context.view_layer.objects:
+            return False
+
+        mesh = getattr(obj, 'data', None)
+        if mesh is None:
+            return False
+
+        # Clearing custom split normals still requires mesh edit operator behavior.
+        if self._op_clear and getattr(mesh, 'has_custom_normals', False):
+            self._activate_only(context, obj)
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.customdata_custom_splitnormals_clear()
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Merge/recalculate via bmesh to avoid repeated edit-mode operator overhead.
+        if self._op_merge or self._op_recalc:
+            bm = bmesh.new()
+            try:
+                bm.from_mesh(mesh)
+                if self._op_merge:
+                    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=self._merge_dist)
+                if self._op_recalc:
+                    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+                bm.to_mesh(mesh)
+                mesh.update()
+            finally:
+                bm.free()
+
+        if self._op_smooth:
+            mesh_key = mesh.as_pointer() if mesh is not None else None
+            instances = self._mesh_instances_map.get(mesh_key, [obj]) if mesh_key is not None else [obj]
+            self._apply_shade_smooth_instances(context, instances, self._smooth_angle)
+
+        return True
+
+    def _apply_shade_smooth_instances(self, context, instances, angle):
+        # In Blender 5.x shade_auto_smooth is object-level, so apply to each instance.
+        for inst in instances:
+            if inst.name not in context.view_layer.objects:
+                continue
+            self._activate_only(context, inst)
+            self._apply_shade_smooth(context, inst, angle)
+
+    def _set_wait_cursor(self, context):
+        if context.window is None:
+            return
+        try:
+            context.window.cursor_modal_set('WAIT')
+            self._cursor_modal_set = True
+            self._cursor_wait_set = True
+        except Exception:
+            try:
+                context.window.cursor_set('WAIT')
+                self._cursor_wait_set = True
+            except Exception:
+                pass
+
+    def _finish(self, context, cancelled):
+        if self._wm_progress_open:
+            context.window_manager.progress_end()
+            self._wm_progress_open = False
+
+        if self._timer is not None:
+            try:
+                context.window_manager.event_timer_remove(self._timer)
+            except Exception:
+                pass
+            self._timer = None
+
+        if self._cursor_wait_set and context.window is not None:
+            try:
+                if self._cursor_modal_set:
+                    context.window.cursor_modal_restore()
+                else:
+                    context.window.cursor_set('DEFAULT')
+            except Exception:
+                pass
+            self._cursor_wait_set = False
+            self._cursor_modal_set = False
+
+        if cancelled:
+            for obj in self._weighted_normals_disabled_objects or []:
+                if obj is None:
                     continue
+                self._set_weighted_normal_modifiers_enabled(obj, enabled=True)
 
-                self._activate_only(context, obj)
+        self._restore_context(context, self._init_selection, self._init_active, self._init_mode)
 
-                bpy.ops.object.mode_set(mode='EDIT')
-                bpy.ops.mesh.select_all(action='SELECT')
+        if cancelled:
+            return
 
-                if effective_clear:
-                    bpy.ops.mesh.customdata_custom_splitnormals_clear()
-                if op_merge:
-                    bpy.ops.mesh.remove_doubles(threshold=merge_dist)
-                if op_recalc:
-                    bpy.ops.mesh.normals_make_consistent(inside=False)
-
-                bpy.ops.object.mode_set(mode='OBJECT')
-
-                if op_smooth:
-                    self._apply_shade_smooth(context, obj, smooth_angle)
-
-                disabled_weighted_count += self._set_weighted_normal_modifiers_enabled(obj, enabled=False)
-
-                processed += 1
-        finally:
-            self._restore_context(context, init_selection, init_active, init_mode)
-
-        ops_enabled = []
-        if effective_clear:
-            ops_enabled.append('clear split normals')
-        if op_merge:
+        ops_enabled = ['clear split normals']
+        if self._op_merge:
             ops_enabled.append('merge by distance')
-        if op_recalc:
+        if self._op_recalc:
             ops_enabled.append('recalculate outside')
-        if op_smooth:
+        if self._op_smooth:
             ops_enabled.append('shade smooth + auto smooth')
-        if disabled_weighted_count > 0:
-            ops_enabled.append(f'disabled {disabled_weighted_count} weighted normal modifiers')
-        if not op_clear:
+        if self._disabled_weighted_count > 0:
+            ops_enabled.append(f'disabled {self._disabled_weighted_count} weighted normal modifiers')
+        if self._shared_skipped > 0:
+            ops_enabled.append(f'skipped {self._shared_skipped} linked instances')
+        if not self._op_clear:
             ops_enabled.append('forced split-normal clear for auto smooth')
 
-        self.report({'INFO'}, f'Cleaned {processed} mesh objects [auto smooth] ({", ".join(ops_enabled)})')
-        return {'FINISHED'}
+        self.report({'INFO'}, f'Cleaned {self._processed} unique mesh data-blocks from {self._selected_mesh_total} mesh objects [auto smooth] ({", ".join(ops_enabled)})')
 
     def _activate_only(self, context, obj):
-        for scene_obj in context.view_layer.objects:
-            scene_obj.select_set(False)
+        prev_obj = self._current_active_obj
+        if prev_obj is not None and prev_obj != obj and prev_obj.name in context.view_layer.objects:
+            prev_obj.select_set(False)
+
         obj.select_set(True)
         context.view_layer.objects.active = obj
+        self._current_active_obj = obj
 
     def _apply_shade_smooth(self, context, obj, angle):
-        # Smooth faces and preserve hard edges via auto-smooth where available.
+        # Smooth faces first.
         try:
             bpy.ops.object.shade_smooth()
         except Exception:
@@ -478,6 +693,14 @@ class CleanupSelectedMeshes(bpy.types.Operator):
                 for poly in mesh.polygons:
                     poly.use_smooth = True
 
+        # Blender 4.x/5.x path: use the operator when available.
+        try:
+            bpy.ops.object.shade_auto_smooth(angle=angle)
+            return
+        except Exception:
+            pass
+
+        # Legacy path for older Blender builds that expose mesh properties.
         mesh = getattr(obj, 'data', None)
         if mesh is None:
             return
@@ -486,13 +709,6 @@ class CleanupSelectedMeshes(bpy.types.Operator):
             mesh.use_auto_smooth = True
             if hasattr(mesh, 'auto_smooth_angle'):
                 mesh.auto_smooth_angle = angle
-            return
-
-        # Blender versions without use_auto_smooth may expose object operator instead.
-        try:
-            bpy.ops.object.shade_auto_smooth(angle=angle)
-        except Exception:
-            pass
 
     def _set_weighted_normal_modifiers_enabled(self, obj, enabled):
         if obj.type != 'MESH':
@@ -515,6 +731,15 @@ class CleanupSelectedMeshes(bpy.types.Operator):
                 changed += 1
 
         return changed
+
+    def _tag_view3d_redraw(self, context):
+        screen = getattr(context, 'screen', None)
+        if screen is None:
+            return
+
+        for area in screen.areas:
+            if area.type == 'VIEW_3D':
+                area.tag_redraw()
 
     def _restore_context(self, context, init_selection, init_active, init_mode):
         try:
