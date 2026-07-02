@@ -37,10 +37,6 @@ Implemented operators are:
 **Tip:**
 Use FreeCAD to convert \*.STEP files to \*.glb.
 
-## Showcase
-
-[![CAD-Helper Functions Demo](images/CAD-Helper_0.6.3.png)](images/CAD-Helper_0.6.3.mp4)
-
 If the embedded preview does not play on your platform, open the video directly:
 [Watch CAD-Helper demo video](images/CAD-Helper_0.6.3.mp4)
 
