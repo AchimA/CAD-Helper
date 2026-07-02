@@ -61,7 +61,6 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
         sub = row.row(align=True)
         sub.enabled = scene.cad_cleanup_use_shade_smooth
         sub.prop(scene, 'cad_cleanup_auto_smooth_angle', text='Angle')
-        box.label(text='Weighted normal modifiers are disabled automatically', icon='INFO')
 
         box.operator(
             'object.cleanup_selected_meshes',
