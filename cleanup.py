@@ -1,6 +1,7 @@
 # GPL-3.0 license
 import bpy
 import mathutils
+import math
 from . import shared_functions
 
 ##############################################################################
@@ -17,6 +18,7 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        scene = context.scene
 
         # Clean-Up
         box = layout.box()
@@ -36,6 +38,34 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
         box.operator(
             'object.flatten_and_join_hierarchy',
             icon='CON_CHILDOF'
+        )
+
+        # Mesh Clean-Up
+        box = layout.box()
+        box.label(text='Mesh Clean-Up')
+
+        row = box.row(align=True)
+        row.prop(scene, 'cad_cleanup_use_clear_split_normals')
+
+        row = box.row(align=True)
+        row.prop(scene, 'cad_cleanup_use_merge_by_distance')
+        sub = row.row(align=True)
+        sub.enabled = scene.cad_cleanup_use_merge_by_distance
+        sub.prop(scene, 'cad_cleanup_merge_distance', text='Distance')
+
+        row = box.row(align=True)
+        row.prop(scene, 'cad_cleanup_use_recalc_normals')
+
+        row = box.row(align=True)
+        row.prop(scene, 'cad_cleanup_use_shade_smooth')
+        sub = row.row(align=True)
+        sub.enabled = scene.cad_cleanup_use_shade_smooth
+        sub.prop(scene, 'cad_cleanup_auto_smooth_angle', text='Angle')
+        box.label(text='Weighted normal modifiers are disabled automatically', icon='INFO')
+
+        box.operator(
+            'object.cleanup_selected_meshes',
+            icon='MOD_NORMALEDIT'
         )
 
         # Empties
@@ -301,6 +331,193 @@ class CenterEmptiesToChildren(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class CleanupSelectedMeshes(bpy.types.Operator):
+    '''
+    Runs mesh clean-up operations on selected mesh objects.
+    '''
+    bl_idname = 'object.cleanup_selected_meshes'
+    bl_label = 'Clean Selected Meshes'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return any(obj.type == 'MESH' for obj in context.selected_objects)
+
+    def execute(self, context):
+        init_selection = list(context.selected_objects)
+        init_active = context.view_layer.objects.active
+        init_mode = context.mode
+
+        mesh_objects = [obj for obj in init_selection if obj.type == 'MESH']
+        if not mesh_objects:
+            self.report({'INFO'}, 'No mesh objects selected')
+            return {'CANCELLED'}
+
+        settings = context.scene
+        op_clear = settings.cad_cleanup_use_clear_split_normals
+        op_merge = settings.cad_cleanup_use_merge_by_distance
+        op_recalc = settings.cad_cleanup_use_recalc_normals
+        op_smooth = settings.cad_cleanup_use_shade_smooth
+        smooth_angle = settings.cad_cleanup_auto_smooth_angle
+        merge_dist = settings.cad_cleanup_merge_distance
+
+        # Always clear split normals in auto-smooth strategy to avoid stale custom data.
+        effective_clear = True
+
+        if not (effective_clear or op_merge or op_recalc or op_smooth):
+            self.report({'INFO'}, 'No mesh cleanup operations enabled')
+            return {'CANCELLED'}
+
+        processed = 0
+        disabled_weighted_count = 0
+
+        # Start from object mode to avoid mode conflicts while switching objects.
+        try:
+            if context.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+        except Exception:
+            pass
+
+        try:
+            for obj in mesh_objects:
+                if obj.name not in context.view_layer.objects:
+                    continue
+
+                self._activate_only(context, obj)
+
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.select_all(action='SELECT')
+
+                if effective_clear:
+                    bpy.ops.mesh.customdata_custom_splitnormals_clear()
+                if op_merge:
+                    bpy.ops.mesh.remove_doubles(threshold=merge_dist)
+                if op_recalc:
+                    bpy.ops.mesh.normals_make_consistent(inside=False)
+
+                bpy.ops.object.mode_set(mode='OBJECT')
+
+                if op_smooth:
+                    self._apply_shade_smooth(context, obj, smooth_angle)
+
+                disabled_weighted_count += self._set_weighted_normal_modifiers_enabled(obj, enabled=False)
+
+                processed += 1
+        finally:
+            self._restore_context(context, init_selection, init_active, init_mode)
+
+        ops_enabled = []
+        if effective_clear:
+            ops_enabled.append('clear split normals')
+        if op_merge:
+            ops_enabled.append('merge by distance')
+        if op_recalc:
+            ops_enabled.append('recalculate outside')
+        if op_smooth:
+            ops_enabled.append('shade smooth + auto smooth')
+        if disabled_weighted_count > 0:
+            ops_enabled.append(f'disabled {disabled_weighted_count} weighted normal modifiers')
+        if not op_clear:
+            ops_enabled.append('forced split-normal clear for auto smooth')
+
+        self.report({'INFO'}, f'Cleaned {processed} mesh objects [auto smooth] ({", ".join(ops_enabled)})')
+        return {'FINISHED'}
+
+    def _activate_only(self, context, obj):
+        for scene_obj in context.view_layer.objects:
+            scene_obj.select_set(False)
+        obj.select_set(True)
+        context.view_layer.objects.active = obj
+
+    def _apply_shade_smooth(self, context, obj, angle):
+        # Smooth faces and preserve hard edges via auto-smooth where available.
+        try:
+            bpy.ops.object.shade_smooth()
+        except Exception:
+            mesh = getattr(obj, 'data', None)
+            if mesh is not None and hasattr(mesh, 'polygons'):
+                for poly in mesh.polygons:
+                    poly.use_smooth = True
+
+        mesh = getattr(obj, 'data', None)
+        if mesh is None:
+            return
+
+        if hasattr(mesh, 'use_auto_smooth'):
+            mesh.use_auto_smooth = True
+            if hasattr(mesh, 'auto_smooth_angle'):
+                mesh.auto_smooth_angle = angle
+            return
+
+        # Blender versions without use_auto_smooth may expose object operator instead.
+        try:
+            bpy.ops.object.shade_auto_smooth(angle=angle)
+        except Exception:
+            pass
+
+    def _set_weighted_normal_modifiers_enabled(self, obj, enabled):
+        if obj.type != 'MESH':
+            return 0
+
+        changed = 0
+        for mod in obj.modifiers:
+            if mod.type != 'WEIGHTED_NORMAL':
+                continue
+            was_enabled = True
+            if hasattr(mod, 'show_viewport'):
+                was_enabled = was_enabled and mod.show_viewport
+                mod.show_viewport = enabled
+            if hasattr(mod, 'show_render'):
+                was_enabled = was_enabled and mod.show_render
+                mod.show_render = enabled
+            if hasattr(mod, 'show_in_editmode'):
+                mod.show_in_editmode = enabled
+            if was_enabled and not enabled:
+                changed += 1
+
+        return changed
+
+    def _restore_context(self, context, init_selection, init_active, init_mode):
+        try:
+            if context.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+        except Exception:
+            pass
+
+        for scene_obj in context.view_layer.objects:
+            scene_obj.select_set(False)
+
+        for obj in init_selection:
+            if obj.name in context.view_layer.objects:
+                obj.select_set(True)
+
+        if init_active and init_active.name in context.view_layer.objects:
+            context.view_layer.objects.active = init_active
+
+        mode_map = {
+            'OBJECT': 'OBJECT',
+            'EDIT_MESH': 'EDIT',
+            'SCULPT': 'SCULPT',
+            'VERTEX_PAINT': 'VERTEX_PAINT',
+            'WEIGHT_PAINT': 'WEIGHT_PAINT',
+            'TEXTURE_PAINT': 'TEXTURE_PAINT',
+        }
+        target_mode = mode_map.get(init_mode)
+        if target_mode and target_mode != 'OBJECT' and context.view_layer.objects.active is not None:
+            try:
+                bpy.ops.object.mode_set(mode=target_mode)
+            except Exception:
+                pass
+
+
+def _default_merge_distance():
+    # Query Blender operator RNA so default tracks Blender version changes.
+    try:
+        return bpy.ops.mesh.remove_doubles.get_rna_type().properties['threshold'].default
+    except Exception:
+        return 0.0001
+
+
 ##############################################################################
 # Add-On Handling
 ##############################################################################
@@ -312,9 +529,46 @@ classes = (
     FlattenJoinHierarchy,
     NormEmptySize,
     CenterEmptiesToChildren,
+    CleanupSelectedMeshes,
 )
 
 def register():
+    bpy.types.Scene.cad_cleanup_use_merge_by_distance = bpy.props.BoolProperty(
+        name='Merge by Distance',
+        description='Merge close vertices in each selected mesh',
+        default=True,
+    )
+    bpy.types.Scene.cad_cleanup_merge_distance = bpy.props.FloatProperty(
+        name='Merge Distance',
+        description='Distance threshold used for merge by distance',
+        default=_default_merge_distance(),
+        min=0.0,
+        soft_max=0.1,
+        subtype='DISTANCE',
+    )
+    bpy.types.Scene.cad_cleanup_use_clear_split_normals = bpy.props.BoolProperty(
+        name='Clear Custom Split Normals',
+        description='Clear imported custom split normals before recalculation',
+        default=True,
+    )
+    bpy.types.Scene.cad_cleanup_use_recalc_normals = bpy.props.BoolProperty(
+        name='Recalculate Normals Outside',
+        description='Recalculate face normals to point outside',
+        default=True,
+    )
+    bpy.types.Scene.cad_cleanup_use_shade_smooth = bpy.props.BoolProperty(
+        name='Shade Smooth',
+        description='Set smooth shading and preserve hard edges with auto-smooth',
+        default=True,
+    )
+    bpy.types.Scene.cad_cleanup_auto_smooth_angle = bpy.props.FloatProperty(
+        name='Auto Smooth Angle',
+        description='Edge angle threshold used to keep hard edges',
+        default=math.radians(60.0),
+        min=0.0,
+        max=math.radians(180.0),
+        subtype='ANGLE',
+    )
     # register classes
     for c in classes:
         bpy.utils.register_class(c)
@@ -326,3 +580,10 @@ def unregister():
     for c in reversed(classes):
         bpy.utils.unregister_class(c)
         print(f'unregistered {c}')
+
+    del bpy.types.Scene.cad_cleanup_auto_smooth_angle
+    del bpy.types.Scene.cad_cleanup_use_shade_smooth
+    del bpy.types.Scene.cad_cleanup_use_recalc_normals
+    del bpy.types.Scene.cad_cleanup_use_clear_split_normals
+    del bpy.types.Scene.cad_cleanup_merge_distance
+    del bpy.types.Scene.cad_cleanup_use_merge_by_distance

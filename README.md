@@ -28,6 +28,7 @@ Implemented operators are:
     * Delete all leaf empties (empties without children) below the selected objects.
     * Flattens the hierarchy below any selected nodes.
     * Flattens the hierarchy below any selected nodes and joins all the mesh objects. All modifiers are applied before joining.
+    * Clean selected mesh objects with user-selectable options: clear custom split normals, merge by distance, and recalculate normals outside.
     * Resize all the selected empties, without resizing all of the children
     * Set the empty (assembly origin) position to the average of all the child objects.
 * **Instance Detection & Linking**
@@ -46,4 +47,4 @@ If the embedded preview does not play on your platform, open the video directly:
     - Object where vertices can be merged
     - Mesh objects where the origin lies outside of the bounding box boundary
     - Scan for empties that could be removed (leaf empties & empties with only one child)
-- [ ] Helper to clean / reset the mesh normals
+- [x] Helper to clean / reset the mesh normals
