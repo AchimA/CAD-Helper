@@ -5,10 +5,9 @@
 
 # <img src="images/ICON.png" alt="Icon" width="86"/> Blender Extension: CAD Helper
 
-**Version 0.6.0** | Requires Blender 5.0.0 or later
 
 Blender Extension for imported CAD assemblies.\
-<img src="images\2025-11-11_CAD-Helper.png" alt="User Interface" width="600"/>
+<img src="images\CAD-Helper_0.6.3.png" alt="User Interface" width="100%"/>
 
 ## Functions:
 This extension aims to simplify the cleaning & restructuring of imported CAD assemblies. This is especially helpful for larger assemblies with hundreds of parts and many nested sub-assemblies.
@@ -16,52 +15,35 @@ This extension aims to simplify the cleaning & restructuring of imported CAD ass
 Most operators work on selections (either one or multiple objects within the assembly structure).
 
 Implemented operators are: 
-* **Visualization & Filtering**
-    * **Color by Depth** - Visualize hierarchy depth (root → deep) with color gradients
-    * **Color by Polycount** - Visualize polygon count across objects
-    * **Color by BBox Size** - Visualize bounding box dimensions
-    * **Colormaps** - Choose from jet, turbo, cubehelix, or custom colormaps (loaded from `colormaps.json`)
-    * **Scale Modes** - Ranked (percentile-based) or Linear (absolute value) normalization
-    * **Live Filtering** - Real-time min/max percentile filter sliders to dynamically show/hide objects
-    * **Alpha Control** - Adjustable transparency range for enhanced depth perception
-    * **Restore Colors** - Non-destructive color restoration to original viewport colors
-* **Selection Helper**
+* **Hierarchy Selection**
     * Select parent or child objects (with or without extending the selection)
     * Recursively select all child elements of the current selection
 * **Selection Filtering**
     * Filter the selection by their name (simple string match & RegEx)^.
     * Filter the selection by object type (EMPTY, MESH, CURVE, etc.)
-    * Filter the selection by bounding box size.Lets you specify a min and max size in % relative to the selected parts.
-    * Filter the selection by vertex count.
+* **Visualisation & Selection**
+    * Filter and select by: Poly. Count, Hierarchy Depth & Bounding Box Size
 * **Clean-Up**
     * Delete one or multiple objects in the hierarchy. All the children of the selected objects are automatically reconnected to their 'grand-parents' before they are deleted.
     * Delete all leaf empties (empties without children) below the selected objects.
     * Flattens the hierarchy below any selected nodes.
     * Flattens the hierarchy below any selected nodes and joins all the mesh objects. All modifiers are applied before joining.
-    * Set the object (part) origins relative to the part geometry
     * Resize all the selected empties, without resizing all of the children
     * Set the empty (assembly origin) position to the average of all the child objects.
-* **Origins**
-    * Sets the origin of mesh objects to their bounding box center.
-* **Empties**
-    * Normalize the size of the selected empties.
-    * Place the empties at the center (median) of the location of its children.
-* **Transfer Material Properties [❗Experimental]**
-    * Transfer material properties between Principled BSDF Node and View Port Display settings.
-    This is sometimes required as some CAD export color, roughness & alpha to the View Port Display instead of the actual material node (i.e. BIM).
-* **Clean-Up Materials  [❗Experimental]**
-    * Clear viewport colors. Resets all objects to standard gray, when viewed in solid shading
-    * Clear all materials from selected objects
-    * Remove duplicated materials.
-    This compares base color, alpha, roughness and metallic in the BSDF node and replaces all materials with the same values.\
-    :information_source: This operator works on the entire scene, not only selected objects.
-* **Link / Object-Data Helper  [❗Experimental]**
-    * Detect same-named object groups (e.g., exported duplicates like screws) and link their mesh data. This can greatly reduce the number of vertices.\
-    ❗→ Since only the name is checked, it might have unwanted behavior. Please be sure to check the outcome!
+* **Instance Detection & Linking**
+    * Detect identical objects by grouping them by vertex count, face area, bounding box axes length, bounding box volume. The detected groups can then be linked, such that they share the same mesh data-block.  
+    ❗→ This might have unwanted behaviour, since false positives could occur. Please be sure to check the outcome!
+
+**Tip:**
+Use FreeCAD to convert \*.STEP files to \*.glb.
+
+## Showcase
+
+<video src="images\CAD-Helper_0.6.3.mp4" alt="CAD-Helper Functions" width="100%"/>
 
 ## TODO
-- [ ] Clean Visualization & Filtering UI
-- [ ] Scan selection for:
+- [x] Clean Visualization & Filtering UI
+- [x] Scan selection for:
     - Object where vertices can be merged
     - Mesh objects where the origin lies outside of the bounding box boundary
     - Scan for empties that could be removed (leaf empties & empties with only one child)
