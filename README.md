@@ -7,7 +7,7 @@
 
 
 Blender Extension for imported CAD assemblies.\
-<img src="images\CAD-Helper_0.6.3.png" alt="User Interface" width="100%"/>
+<img src="images/CAD-Helper_0.6.3.png" alt="User Interface" width="100%"/>
 
 ## Functions:
 This extension aims to simplify the cleaning & restructuring of imported CAD assemblies. This is especially helpful for larger assemblies with hundreds of parts and many nested sub-assemblies.
@@ -19,7 +19,7 @@ Implemented operators are:
     * Select parent or child objects (with or without extending the selection)
     * Recursively select all child elements of the current selection
 * **Selection Filtering**
-    * Filter the selection by their name (simple string match & RegEx)^.
+    * Filter the selection by their name (simple string match & RegEx).
     * Filter the selection by object type (EMPTY, MESH, CURVE, etc.)
 * **Visualisation & Selection**
     * Filter and select by: Poly. Count, Hierarchy Depth & Bounding Box Size
@@ -39,7 +39,10 @@ Use FreeCAD to convert \*.STEP files to \*.glb.
 
 ## Showcase
 
-<video src="images\CAD-Helper_0.6.3.mp4" alt="CAD-Helper Functions" width="100%"/>
+[![CAD-Helper Functions Demo](images/CAD-Helper_0.6.3.png)](images/CAD-Helper_0.6.3.mp4)
+
+If the embedded preview does not play on your platform, open the video directly:
+[Watch CAD-Helper demo video](images/CAD-Helper_0.6.3.mp4)
 
 ## TODO
 - [x] Clean Visualization & Filtering UI
