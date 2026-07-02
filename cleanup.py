@@ -10,7 +10,7 @@ from . import shared_functions
 
 class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'
-    bl_label = 'CAD Clean-Up Helper'
+    bl_label = 'Clean-Up'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
@@ -18,66 +18,106 @@ class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
+        layout.use_property_split = False
+        layout.use_property_decorate = False
 
-        # Clean-Up
-        box = layout.box()
-        box.label(text='Clean-Up')
-        box.operator(
+
+class CAD_CLEAN_HELPER_PT_Cleanup(bpy.types.Panel):
+    bl_idname = 'CAD_CLEAN_HELPER_PT_Cleanup'
+    bl_label = 'Clean-Up: Structure'
+    bl_parent_id = 'CAD_CLEAN_HELPER_PT_Panel'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+    bl_options = {'DEFAULT_OPEN'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+
+        # Clean-Up Structure
+        layout.operator(
             'object.delete_and_reparent_children',
             icon='SNAP_PEEL_OBJECT'
             )
-        box.operator(
+        layout.operator(
             'object.delete_child_empties_without_children',
             icon='OUTLINER_DATA_EMPTY'
             )
-        box.operator(
+        layout.operator(
             'object.flatten_hierarchy',
             icon='OUTLINER'
         )
-        box.operator(
+        layout.operator(
             'object.flatten_and_join_hierarchy',
             icon='CON_CHILDOF'
         )
 
-        # Mesh Clean-Up
-        box = layout.box()
-        box.label(text='Mesh Clean-Up')
 
-        row = box.row(align=True)
-        row.prop(scene, 'cad_cleanup_use_clear_split_normals')
+class CAD_CLEAN_HELPER_PT_Empties(bpy.types.Panel):
+    bl_idname = 'CAD_CLEAN_HELPER_PT_Empties'
+    bl_label = 'Clean-Up: Empties'
+    bl_parent_id = 'CAD_CLEAN_HELPER_PT_Panel'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+    bl_options = {'DEFAULT_OPEN'}
 
-        row = box.row(align=True)
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+        layout.operator(
+            'object.norm_empty_size',
+            icon='EMPTY_DATA'
+            )
+        layout.operator(
+            'object.center_empties_to_children',
+            icon='ANCHOR_CENTER'
+            )
+
+
+class CAD_CLEAN_HELPER_PT_MeshCleanup(bpy.types.Panel):
+    bl_idname = 'CAD_CLEAN_HELPER_PT_MeshCleanup'
+    bl_label =  'Clean-Up: Mesh Normals'
+    bl_parent_id = 'CAD_CLEAN_HELPER_PT_Panel'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CAD Helper'
+    bl_context = 'objectmode'
+    bl_options = {'DEFAULT_OPEN'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+        scene = context.scene
+
+        col = layout.column(align=True)
+        col.prop(scene, 'cad_cleanup_use_clear_split_normals')
+
+        row = col.row(align=True)
         row.prop(scene, 'cad_cleanup_use_merge_by_distance')
         sub = row.row(align=True)
         sub.enabled = scene.cad_cleanup_use_merge_by_distance
         sub.prop(scene, 'cad_cleanup_merge_distance', text='Distance')
 
-        row = box.row(align=True)
-        row.prop(scene, 'cad_cleanup_use_recalc_normals')
+        col.prop(scene, 'cad_cleanup_use_recalc_normals')
 
-        row = box.row(align=True)
+        row = col.row(align=True)
         row.prop(scene, 'cad_cleanup_use_shade_smooth')
         sub = row.row(align=True)
         sub.enabled = scene.cad_cleanup_use_shade_smooth
         sub.prop(scene, 'cad_cleanup_auto_smooth_angle', text='Angle')
 
-        box.operator(
+        layout.separator()
+        layout.operator(
             'object.cleanup_selected_meshes',
             icon='MOD_NORMALEDIT'
         )
-
-        # Empties
-        box = layout.box()
-        box.label(text='Empties')
-        box.operator(
-            'object.norm_empty_size',
-            icon='EMPTY_DATA'
-            )
-        box.operator(
-            'object.center_empties_to_children',
-            icon='ANCHOR_CENTER'
-            )
 
 ##############################################################################
 # Operators
@@ -522,6 +562,9 @@ def _default_merge_distance():
 ##############################################################################
 classes = (
     CAD_CLEAN_HELPER_PT_Panel,
+    CAD_CLEAN_HELPER_PT_Cleanup,
+    CAD_CLEAN_HELPER_PT_Empties,
+    CAD_CLEAN_HELPER_PT_MeshCleanup,
     DeleteAndReparentChildren,
     DeleteEmpiesWithoutChildren,
     FlattenHierarchy,
@@ -563,7 +606,7 @@ def register():
     bpy.types.Scene.cad_cleanup_auto_smooth_angle = bpy.props.FloatProperty(
         name='Auto Smooth Angle',
         description='Edge angle threshold used to keep hard edges',
-        default=math.radians(60.0),
+        default=math.radians(30.0),
         min=0.0,
         max=math.radians(180.0),
         subtype='ANGLE',

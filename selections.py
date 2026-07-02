@@ -8,7 +8,7 @@ from . import shared_functions
 
 class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
     bl_idname = 'CAD_SEL_HELPER_PT_Panel'
-    bl_label = 'CAD Selection Helper'
+    bl_label = 'Selection'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CAD Helper'
