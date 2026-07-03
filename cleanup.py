@@ -405,11 +405,13 @@ class CleanupSelectedMeshes(bpy.types.Operator):
     _report_interval = 10
     _last_reported_index = 0
     _weighted_normals_disabled_objects = None
-    _batch_size = 4
-    _batch_min = 2
-    _batch_max = 8
-    _batch_target_seconds = 0.1
+    _batch_size = 10
+    _batch_min = 5
+    _batch_max = 15
+    _batch_target_seconds = 1.0
     _current_active_obj = None
+    _cleared_normals_mesh_keys = None
+    _smoothed_mesh_keys = None
 
     @classmethod
     def poll(cls, context):
@@ -468,6 +470,8 @@ class CleanupSelectedMeshes(bpy.types.Operator):
         self._weighted_normals_disabled_objects = []
         self._batch_size = 5
         self._current_active_obj = None
+        self._cleared_normals_mesh_keys = set()
+        self._smoothed_mesh_keys = set()
 
         # Start from object mode to avoid mode conflicts while switching objects.
         try:
@@ -489,6 +493,9 @@ class CleanupSelectedMeshes(bpy.types.Operator):
             self._disabled_weighted_count += disabled_count
             if disabled_count > 0:
                 self._weighted_normals_disabled_objects.append(obj)
+
+        if self._op_clear:
+            self._batch_clear_custom_split_normals(context)
 
         wm = context.window_manager
         wm.progress_begin(0, self._total)
@@ -572,14 +579,15 @@ class CleanupSelectedMeshes(bpy.types.Operator):
         mesh = getattr(obj, 'data', None)
         if mesh is None:
             return False
+        mesh_key = mesh.as_pointer()
 
         # Clearing custom split normals still requires mesh edit operator behavior.
-        if self._op_clear and getattr(mesh, 'has_custom_normals', False):
-            self._activate_only(context, obj)
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.select_all(action='SELECT')
-            bpy.ops.mesh.customdata_custom_splitnormals_clear()
-            bpy.ops.object.mode_set(mode='OBJECT')
+        if (
+            self._op_clear
+            and mesh_key not in self._cleared_normals_mesh_keys
+            and getattr(mesh, 'has_custom_normals', False)
+        ):
+            self._clear_custom_split_normals(context, obj)
 
         # Merge/recalculate via bmesh to avoid repeated edit-mode operator overhead.
         if self._op_merge or self._op_recalc:
@@ -596,19 +604,82 @@ class CleanupSelectedMeshes(bpy.types.Operator):
                 bm.free()
 
         if self._op_smooth:
-            mesh_key = mesh.as_pointer() if mesh is not None else None
             instances = self._mesh_instances_map.get(mesh_key, [obj]) if mesh_key is not None else [obj]
             self._apply_shade_smooth_instances(context, instances, self._smooth_angle)
 
         return True
 
     def _apply_shade_smooth_instances(self, context, instances, angle):
-        # In Blender 5.x shade_auto_smooth is object-level, so apply to each instance.
+        # Apply object-level smooth settings to each instance that shares mesh data.
         for inst in instances:
             if inst.name not in context.view_layer.objects:
                 continue
-            self._activate_only(context, inst)
             self._apply_shade_smooth(context, inst, angle)
+
+    def _clear_custom_split_normals(self, context, obj):
+        self._activate_only(context, obj)
+        bpy.ops.object.mode_set(mode='EDIT')
+        try:
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.customdata_custom_splitnormals_clear()
+        finally:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        self._mark_mesh_normals_cleared(obj)
+
+    def _batch_clear_custom_split_normals(self, context):
+        targets = []
+        for obj in self._mesh_objects:
+            if obj.name not in context.view_layer.objects:
+                continue
+            mesh = getattr(obj, 'data', None)
+            if mesh is None:
+                continue
+            if not getattr(mesh, 'has_custom_normals', False):
+                continue
+            targets.append(obj)
+
+        if not targets:
+            return
+
+        for obj in targets:
+            obj.select_set(True)
+
+        context.view_layer.objects.active = targets[0]
+        self._current_active_obj = targets[0]
+
+        try:
+            bpy.ops.object.mode_set(mode='EDIT')
+            try:
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.customdata_custom_splitnormals_clear()
+            finally:
+                bpy.ops.object.mode_set(mode='OBJECT')
+
+            for obj in targets:
+                self._mark_mesh_normals_cleared(obj)
+        except Exception:
+            for obj in targets:
+                if obj.name not in context.view_layer.objects:
+                    continue
+                mesh = getattr(obj, 'data', None)
+                if mesh is None:
+                    continue
+                if not getattr(mesh, 'has_custom_normals', False):
+                    continue
+                self._clear_custom_split_normals(context, obj)
+
+        try:
+            bpy.ops.object.select_all(action='DESELECT')
+        except Exception:
+            for scene_obj in context.view_layer.objects:
+                scene_obj.select_set(False)
+        self._current_active_obj = None
+
+    def _mark_mesh_normals_cleared(self, obj):
+        mesh = getattr(obj, 'data', None)
+        if mesh is None:
+            return
+        self._cleared_normals_mesh_keys.add(mesh.as_pointer())
 
     def _set_wait_cursor(self, context):
         if context.window is None:
@@ -684,31 +755,77 @@ class CleanupSelectedMeshes(bpy.types.Operator):
         self._current_active_obj = obj
 
     def _apply_shade_smooth(self, context, obj, angle):
-        # Smooth faces first.
-        try:
-            bpy.ops.object.shade_smooth()
-        except Exception:
-            mesh = getattr(obj, 'data', None)
-            if mesh is not None and hasattr(mesh, 'polygons'):
-                for poly in mesh.polygons:
-                    poly.use_smooth = True
-
-        # Blender 4.x/5.x path: use the operator when available.
-        try:
-            bpy.ops.object.shade_auto_smooth(angle=angle)
-            return
-        except Exception:
-            pass
-
-        # Legacy path for older Blender builds that expose mesh properties.
+        # Prefer data API for performance; fallback to operators only if needed.
         mesh = getattr(obj, 'data', None)
-        if mesh is None:
+        mesh_key = mesh.as_pointer() if mesh is not None else None
+
+        smooth_ok = True
+        if mesh_key is None or mesh_key not in self._smoothed_mesh_keys:
+            smooth_ok = self._set_smooth_faces_data(mesh)
+            if smooth_ok and mesh_key is not None:
+                self._smoothed_mesh_keys.add(mesh_key)
+
+        auto_ok = self._set_auto_smooth_data(obj, mesh, angle)
+
+        if smooth_ok and auto_ok:
             return
 
-        if hasattr(mesh, 'use_auto_smooth'):
-            mesh.use_auto_smooth = True
-            if hasattr(mesh, 'auto_smooth_angle'):
-                mesh.auto_smooth_angle = angle
+        self._activate_only(context, obj)
+        if not smooth_ok:
+            try:
+                bpy.ops.object.shade_smooth()
+                smooth_ok = True
+                if mesh_key is not None:
+                    self._smoothed_mesh_keys.add(mesh_key)
+            except Exception:
+                pass
+
+        if not auto_ok:
+            try:
+                bpy.ops.object.shade_auto_smooth(angle=angle)
+            except Exception:
+                pass
+
+    def _set_smooth_faces_data(self, mesh):
+        if mesh is None or not hasattr(mesh, 'polygons'):
+            return False
+
+        poly_count = len(mesh.polygons)
+        if poly_count == 0:
+            return True
+
+        try:
+            mesh.polygons.foreach_set('use_smooth', [True] * poly_count)
+            mesh.update()
+            return True
+        except Exception:
+            return False
+
+    def _set_auto_smooth_data(self, obj, mesh, angle):
+        changed = False
+
+        if self._set_attr_if_present(obj, 'use_auto_smooth', True):
+            changed = True
+        if self._set_attr_if_present(obj, 'auto_smooth_angle', angle):
+            changed = True
+
+        if mesh is not None:
+            if self._set_attr_if_present(mesh, 'use_auto_smooth', True):
+                changed = True
+            if self._set_attr_if_present(mesh, 'auto_smooth_angle', angle):
+                changed = True
+
+        return changed
+
+    def _set_attr_if_present(self, target, attr_name, value):
+        if target is None or not hasattr(target, attr_name):
+            return False
+
+        try:
+            setattr(target, attr_name, value)
+            return True
+        except Exception:
+            return False
 
     def _set_weighted_normal_modifiers_enabled(self, obj, enabled):
         if obj.type != 'MESH':
