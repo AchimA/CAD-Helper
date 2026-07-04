@@ -11,6 +11,7 @@ from . import shared_functions
 ##############################################################################
 
 class CAD_CLEAN_HELPER_PT_Panel(bpy.types.Panel):
+    '''Various clean-up operations for CAD assemblies and meshes.'''
     bl_idname = 'CAD_CLEAN_HELPER_PT_Panel'
     bl_label = 'Clean-Up'
     bl_space_type = 'VIEW_3D'
@@ -126,12 +127,10 @@ class CAD_CLEAN_HELPER_PT_MeshCleanup(bpy.types.Panel):
 ##############################################################################
 
 class DeleteAndReparentChildren(bpy.types.Operator):
-    '''
-    Reconnects all the children of an object to it's
+    '''Reconnects all the children of an object to it's
     parent (if available) before deleting the object.
     This allows to keep the hierarchy when
-    deleting objects from a structured assebly.
-    '''
+    deleting objects from a structured assebly.'''
     bl_idname = 'object.delete_and_reparent_children'
     bl_label = 'Delete and re-parent Children'
     bl_options = {"REGISTER", "UNDO"}
@@ -166,10 +165,8 @@ class DeleteAndReparentChildren(bpy.types.Operator):
 
 
 class DeleteEmpiesWithoutChildren(bpy.types.Operator):
-    '''
-    Under selected root objects; recursivley
-    deletes all empties that do not have any chlidren.
-    '''
+    '''Under selected root objects; recursivley
+    deletes all empties that do not have any chlidren.'''
     bl_idname = 'object.delete_child_empties_without_children'
     bl_label = 'Delete Child Empties Without Children'
     bl_options = {"REGISTER", "UNDO"}
@@ -217,10 +214,8 @@ class DeleteEmpiesWithoutChildren(bpy.types.Operator):
 
 
 class FlattenHierarchy(bpy.types.Operator):
-    '''
-    Flattens hierarch, so that all of the childrend
-    below a selected node(s) are on the same level.
-    '''
+    '''Flattens hierarchy, so that all of the childrend
+    below a selected node(s) are on the same level.'''
     bl_idname = 'object.flatten_hierarchy'
     bl_label = 'Flatten Hierarchy'
     bl_options = {"REGISTER", "UNDO"}
@@ -242,12 +237,10 @@ class FlattenHierarchy(bpy.types.Operator):
 
 
 class FlattenJoinHierarchy(bpy.types.Operator):
-    '''
-    Flattens hierarchy and join all of the child mesh objects,
+    '''Flattens hierarchy and join all of the child mesh objects,
     so that all of the children below a selected object(s)
     are on the same level.
-    All modifiers are applied before joining.
-    '''
+    All modifiers are applied before joining.'''
     bl_idname = 'object.flatten_and_join_hierarchy'
     bl_label = 'Flatten and Join Hierarchy'
     bl_options = {"REGISTER", "UNDO"}
@@ -271,9 +264,8 @@ class FlattenJoinHierarchy(bpy.types.Operator):
 
 
 class NormEmptySize(bpy.types.Operator):
-    '''
-    Normalizes the Empty Display Size
-    '''
+    '''Normalizes the Empty Display Size of all
+    selected empties to a user-defined value.'''
     bl_idname = 'object.norm_empty_size'
     bl_label = 'Normalize Empty Size'
     bl_options = {"REGISTER", "UNDO"}
@@ -323,11 +315,9 @@ class NormEmptySize(bpy.types.Operator):
 
 
 class CenterEmptiesToChildren(bpy.types.Operator):
-    '''
-    Center Empties to Children.
+    '''Center Empties to Children.
     This moves the assembly origin to an average
-    position of all the parts in the assembly.
-    '''
+    position of all the parts in the assembly.'''
     bl_idname = 'object.center_empties_to_children'
     bl_label = 'Center Empties to Children'
     bl_options = {"REGISTER", "UNDO"}
@@ -373,9 +363,7 @@ class CenterEmptiesToChildren(bpy.types.Operator):
 
 
 class CleanupSelectedMeshes(bpy.types.Operator):
-    '''
-    Runs mesh clean-up operations on selected mesh objects.
-    '''
+    '''Runs mesh clean-up operations on selected mesh objects.'''
     bl_idname = 'object.cleanup_selected_meshes'
     bl_label = 'Clean Selected Meshes'
     bl_options = {'REGISTER', 'UNDO'}

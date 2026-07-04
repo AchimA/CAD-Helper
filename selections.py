@@ -23,28 +23,28 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
         # Selections
         op = grid.operator(
             'object.select_hierarchy',
-            text='Extend Selection to Parents',
+            text='Extend Selection to Parents.',
             icon='TRIA_UP_BAR'
             )
         op.direction='PARENT'
         op.extend=True
         op = grid.operator(
             'object.select_hierarchy',
-            text='Extend Selection to Children',
+            text='Extend Selection to Children.',
             icon='TRIA_DOWN_BAR'
             )
         op.direction='CHILD'
         op.extend=True
         op = grid.operator(
             'object.select_hierarchy',
-            text='Select Parent',
+            text='Select Parent.',
             icon='TRIA_UP'
             )
         op.direction='PARENT'
         op.extend=False
         op = grid.operator(
             'object.select_hierarchy',
-            text='Select Children',
+            text='Select Children.',
             icon='TRIA_DOWN'
             )
         op.direction='CHILD'
@@ -66,7 +66,7 @@ class CAD_SEL_HELPER_PT_Panel(bpy.types.Panel):
 ##############################################################################
 
 class SelectAllChildren(bpy.types.Operator):
-    """Select all children recursively of the current selection"""
+    """Select all children recursively of the current selection."""
     bl_idname = "object.select_all_children"
     bl_label = "Select All Children Recursively"
     bl_options = {"REGISTER", "UNDO"}

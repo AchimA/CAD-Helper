@@ -4,13 +4,11 @@ import re
 from . import shared_functions
 
 class FilterSelection(bpy.types.Operator):
-    '''
-    Filter all the selected objects by:
+    '''Filter all the selected objects by:
         - Object Name
-        - Object Type
-    '''
+        - Object Type'''
     bl_idname = 'object.filter_selection'
-    bl_label = 'Filter Selection '
+    bl_label = 'Filter Selection'
     bl_options = {"REGISTER", "UNDO"}
     
     @classmethod

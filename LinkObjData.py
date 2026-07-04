@@ -45,6 +45,7 @@ class LIST_OT_SelectCollection(bpy.types.Operator):
         return{'FINISHED'}
     
 class LIST_OT_LinkCollection(bpy.types.Operator):
+    '''Link selected collection of objects to the same mesh data.'''
     bl_idname = "object.list_link_collection"
     bl_label = "Link Collection"
 
@@ -90,6 +91,7 @@ class LIST_OT_LinkCollection(bpy.types.Operator):
 
 
 class LIST_OT_LinkALLCollections(bpy.types.Operator):
+    '''Link all collections of objects to the same mesh data.'''
     bl_idname = "object.link_all_collections"
     bl_label = "Link All Collections"
 
@@ -189,9 +191,7 @@ class InstanceDetectionTolerancesPanel(bpy.types.Panel):
         grid.prop(scene, 'cad_bin_tol_volume', text="Volume (%)")
 
 class RefreshLinkableCollection(bpy.types.Operator):
-    '''
-    Refresh the collection for Instance Detection & Linking
-    '''
+    '''Scan the selection for identical mesh objects and group them into linkable collections.'''
     bl_idname = 'object.refresh_linkable_collection'
     bl_label = 'Refresh Instance Detection & Linking'
     bl_options = {"REGISTER", "UNDO"}
@@ -230,13 +230,29 @@ def register():
     bpy.types.Scene.linkable_collections = bpy.props.CollectionProperty(type=LinkableCollectionItem)
     bpy.types.Scene.lin_col_idx = bpy.props.IntProperty(name='Index', update=ListIndexCallback)
     bpy.types.Scene.cad_bin_tol_vertex = bpy.props.FloatProperty(
-        name="Vertex Count Tolerance (%)", default=5.0, min=0.0, max=100.0)
+        name="Vertex Count Tolerance (%)",
+        description="Maximum allowed difference in vertex count between objects, as a percent of the current bin average",
+        default=5.0,
+        min=0.0,
+        max=100.0)
     bpy.types.Scene.cad_bin_tol_axes = bpy.props.FloatProperty(
-        name="Principal Axes Tolerance (%)", default=1.0, min=0.0, max=100.0)
+        name="Principal Axes Tolerance (%)",
+        description="Maximum allowed difference for bounding-box min/max axis values (X, Y, Z), as a percent of the bin average",
+        default=1.0,
+        min=0.0,
+        max=100.0)
     bpy.types.Scene.cad_bin_tol_surface = bpy.props.FloatProperty(
-        name="Face Surface Tolerance (%)", default=1.0, min=0.0, max=100.0)
+        name="Face Surface Tolerance (%)",
+        description="Maximum allowed difference in total polygon surface area between objects, as a percent of the bin average",
+        default=1.0,
+        min=0.0,
+        max=100.0)
     bpy.types.Scene.cad_bin_tol_volume = bpy.props.FloatProperty(
-        name="Bounding Box Volume Tolerance (%)", default=5.0, min=0.0, max=100.0)
+        name="Bounding Box Volume Tolerance (%)",
+        description="Maximum allowed difference in bounding-box volume between objects, as a percent of the bin average",
+        default=5.0,
+        min=0.0,
+        max=100.0)
     bpy.types.Scene.show_instance_tolerances = bpy.props.BoolProperty(
         name="Show Instance Detection Tolerances", default=True)
 
