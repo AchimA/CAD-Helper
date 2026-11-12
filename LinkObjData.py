@@ -8,11 +8,25 @@ from . import shared_functions
 
 
 # Assign linkable collection.
+class LinkableObjectItem(bpy.types.PropertyGroup):
+    object_ref: bpy.props.PointerProperty(type=bpy.types.Object)
+
+
 class LinkableCollectionItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name='Items Name', default='Unknown')
-    objects: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup, name='Linkable Objects')
+    objects: bpy.props.CollectionProperty(type=LinkableObjectItem, name='Linkable Objects')
     N_objects: bpy.props.IntProperty(name='Number of Objects', default=0)
     selected: bpy.props.BoolProperty(name='Selected', default=False)
+
+
+def get_linkable_mesh_objects(item):
+    objects = []
+    for entry in item.objects:
+        obj = entry.object_ref
+        if obj is not None and obj.type == 'MESH' and obj.data is not None:
+            objects.append(obj)
+    return objects
+
 
 def ListIndexCallback(self, value):
     # bpy.ops.generate_markers.change_marker() #other class function
@@ -33,8 +47,13 @@ class LIST_OT_SelectCollection(bpy.types.Operator):
         linkable_collections = context.scene.linkable_collections
         index = context.scene.lin_col_idx
 
-        name = linkable_collections[index].name
-        objects = [bpy.data.objects[o.name] for o in list(linkable_collections[index].objects)]
+        if index < 0 or index >= len(linkable_collections):
+            return {'CANCELLED'}
+
+        objects = [
+            obj for obj in get_linkable_mesh_objects(linkable_collections[index])
+            if obj.name in context.view_layer.objects
+        ]
 
         bpy.ops.object.select_all(action='DESELECT')
         # context.view_layer.objects.active = None
@@ -75,7 +94,7 @@ class LIST_OT_LinkCollection(bpy.types.Operator):
         if self._step < self._total:
             idx = self._indices_to_link[self._step]
             item = linkable_collections[idx]
-            objects = [bpy.data.objects[o.name] for o in list(item.objects)]
+            objects = get_linkable_mesh_objects(item)
             if objects:
                 first_data = objects[0].data
                 # Batch assignment
@@ -110,7 +129,7 @@ class LIST_OT_LinkALLCollections(bpy.types.Operator):
         for step, idx in enumerate(indices_to_link):
             if idx < len(linkable_collections):
                 item = linkable_collections[idx]
-                objects = [bpy.data.objects[o.name] for o in list(item.objects)]
+                objects = get_linkable_mesh_objects(item)
                 if objects:
                     first_data = objects[0].data
                     for obj in objects[1:]:
@@ -198,8 +217,7 @@ class RefreshLinkableCollection(bpy.types.Operator):
     
     def execute(self, context):
         objects = context.selected_objects
-        prop_types = ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'VOLUME']
-        objects = [ob for ob in objects if ob.type in prop_types]
+        objects = [ob for ob in objects if ob.type == 'MESH']
 
         # Single efficient summary and binning
         summarize_and_bin_objects(objects, context.scene)
@@ -212,6 +230,7 @@ class RefreshLinkableCollection(bpy.types.Operator):
 ##############################################################################
 classes = (
     RefreshLinkableCollection,
+    LinkableObjectItem,
     LinkableCollectionItem,
     LINKABLE_COLLECTION_UL_LIST,
     UIListPanelLinkableCollection,
@@ -257,11 +276,6 @@ def register():
         name="Show Instance Detection Tolerances", default=True)
 
 def unregister():
-    # unregister classes
-    for c in reversed(classes):
-        bpy.utils.unregister_class(c)
-        print(f'unregistered {c}')
-
     del bpy.types.Scene.linkable_collections
     del bpy.types.Scene.lin_col_idx
     del bpy.types.Scene.cad_bin_tol_vertex
@@ -269,6 +283,11 @@ def unregister():
     del bpy.types.Scene.cad_bin_tol_surface
     del bpy.types.Scene.cad_bin_tol_volume
     del bpy.types.Scene.show_instance_tolerances
+
+    # unregister classes
+    for c in reversed(classes):
+        bpy.utils.unregister_class(c)
+        print(f'unregistered {c}')
 
 
 ##############################################################################
@@ -310,12 +329,12 @@ def summarize_and_bin_objects(objects, scene):
     wm = bpy.context.window_manager
     total = len(objects)
     wm.progress_begin(0, total)
-    metrics = []
+    object_metrics = []
     for idx, ob in enumerate(objects):
         wm.progress_update(idx)
         m = get_object_metrics(ob)
         if m:
-            metrics.append(m)
+            object_metrics.append((ob, m))
     wm.progress_end()
     # Binning
     tol_vertex = scene.cad_bin_tol_vertex / 100.0
@@ -323,7 +342,7 @@ def summarize_and_bin_objects(objects, scene):
     tol_surface = scene.cad_bin_tol_surface / 100.0
     tol_volume = scene.cad_bin_tol_volume / 100.0
     bins = []
-    for ob, metrics in zip(objects, metrics):
+    for ob, metrics in object_metrics:
         found_bin = None
         for b in bins:
             avg = b['avg']
@@ -364,5 +383,5 @@ def summarize_and_bin_objects(objects, scene):
         item.name = f"Bin {i+1}"
         for obj in b['objects']:
             ob_item = item.objects.add()
-            ob_item.name = obj.name
+            ob_item.object_ref = obj
         item.N_objects = len(b['objects'])
